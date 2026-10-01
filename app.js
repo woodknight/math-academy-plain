@@ -119,9 +119,16 @@ async function moveMilo(correct) {
         renderTreasures();
         celebrate();
         playSound('reward');
-        trailMessage(`Hooray! You found ${item.name}!`, 'A lovely little prize for your lovely little brain.');
+        trailMessage(`Hooray! You found ${item.name}!`, 'Enjoy your prize. A new adventure is coming!');
         showFeedback('You made it! A surprise for Milo!');
-        await wait(900);
+        $('#answer-hint').textContent = 'A new adventure starts after the celebration.';
+        const celebrationAnimations = trailScene.getAnimations({ subtree: true })
+            .filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity);
+        await Promise.all([
+            wait(900),
+            ...celebrationAnimations.map((animation) => animation.finished.catch(() => { })),
+        ]);
+        return;
     } else {
         $('#trail-encounter').replaceChildren(sprite(item.id));
         journeyCard.classList.add('gobble');
@@ -153,7 +160,11 @@ function resetTrail() {
     $('#journey-again').hidden = true;
     $('#answer-hint').textContent = 'Type your answer or tap the numbers below.';
     trailMessage(`A surprise is ${TRAIL_END - TRAIL_START} steps away!`, `${TRAIL_START} steps back to Munchy Meadow. Keep Milo moving toward the gift.`);
+    // Start the next adventure at its actual origin before accepting another answer.
+    traveler.style.transition = 'none';
     renderTrailPosition();
+    void traveler.offsetWidth;
+    traveler.style.removeProperty('transition');
 }
 
 function stopSpeech() {
@@ -355,14 +366,17 @@ async function evaluate(submitted = false) {
         $('#encouragement').textContent = correctCount % 5 === 0 ? 'Look at you grow. Keep it up!' : 'One little win. One bigger smile.';
         showFeedback('That’s right! Nicely done.');
         playSound('correct');
+        const answerSpeech = speak(questionText(problem, true));
         await Promise.all([
-            speak(questionText(problem, true)),
             wait(1600),
             movement,
         ]);
-        if (round !== currentRound || trailOutcome) return;
+        if (!trailOutcome) await answerSpeech;
+        if (round !== currentRound) return;
+        if (trailOutcome?.type === 'reward') resetTrail();
         questionNumber++;
         nextProblem();
+        focusAnswer();
     } else {
         card.classList.add('wrong');
         showFeedback('Not quite. Let’s try that again!');
@@ -459,21 +473,15 @@ $('#difficulty').addEventListener('change', (event) => {
     nextProblem();
 });
 $('#journey-again').addEventListener('click', () => {
-    if (revealingAnswer) return;
-    const solved = card.classList.contains('correct');
+    if (revealingAnswer || trailOutcome?.type !== 'creature' || $('#journey-again').hidden) return;
     resetTrail();
-    if (solved) {
-        questionNumber++;
-        nextProblem();
-    } else {
-        round++;
-        stopSpeech();
-        answerInput.value = '';
-        card.classList.remove('wrong');
-        setLocked(false);
-        showFeedback('A fresh start. You’ve got this!');
-        speak(questionText(problem));
-    }
+    round++;
+    stopSpeech();
+    answerInput.value = '';
+    card.classList.remove('wrong');
+    setLocked(false);
+    showFeedback('A fresh start. You’ve got this!');
+    speak(questionText(problem));
     focusAnswer();
 });
 $('#display-options').addEventListener('click', (event) => {
