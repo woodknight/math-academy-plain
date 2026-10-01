@@ -191,7 +191,25 @@ const rewardShapes = {
     rainbow: path('M12 81a48 48 0 0 1 96 0', 'none', 'stroke="#e7aca5" stroke-width="12"') + path('M25 81a35 35 0 0 1 70 0', 'none', 'stroke="#ecd199" stroke-width="12"') + path('M38 81a22 22 0 0 1 44 0', 'none', 'stroke="#aecab5" stroke-width="12"') + ellipse(22, 89, 20, 12, cream) + ellipse(98, 89, 20, 12, cream) + face(22, 87) + face(98, 87),
 };
 
+export function pirateChestArt() {
+    return `<g stroke="#543628" stroke-width="2.5" stroke-linejoin="round">
+      <ellipse cx="60" cy="110" rx="49" ry="5" fill="#483321" opacity=".15" stroke="none"/>
+      <g class="pirate-chest-coins" fill="#ffd369" stroke="#bc8525"><circle cx="29" cy="58" r="9"/><circle cx="43" cy="55" r="10"/><circle cx="58" cy="57" r="10"/><circle cx="77" cy="54" r="9"/><circle cx="92" cy="58" r="9"/></g>
+      <path d="M13 57h94v44l-10 8H23l-10-8Z" fill="#9e542f"/>
+      <path d="M16 72h88M16 86h88M25 105h69" fill="none" stroke="#673a28"/>
+      <path d="M22 59h13v49H22Zm63 0h13v49H85Z" fill="#e6b854" stroke="#b7802b"/>
+      <g class="pirate-chest-lid"><path d="M12 59V44c0-26 96-26 96 0v15Z" fill="#b96c3c"/>
+      <path d="M15 44h90M22 31h76" fill="none" stroke="#744027"/>
+      <path d="M22 29q6-4 13-5v34H22Zm63-5q7 1 13 5v29H85Z" fill="#e6b854" stroke="#b7802b"/>
+      <path d="M12 53h96v9H12Z" fill="#e6b854" stroke="#b7802b"/></g>
+      <path d="M48 65h24v28H48Z" fill="#f6cd66" stroke="#b7802b"/>
+      <g fill="#fff3ce" stroke="#79502d" stroke-width="1.5"><path d="m51 86 18-11m-18 0 18 11" stroke-width="3"/><path d="M54 70q6-5 12 0v8l-3 2v4h-6v-4l-3-2Z"/><circle cx="57" cy="74" r="1.2" fill="#543628"/><circle cx="63" cy="74" r="1.2" fill="#543628"/></g>
+      <path d="m106 15 2 6 6 2-6 2-2 6-2-6-6-2 6-2Z" fill="#ffd369" stroke="none"/>
+    </g>`;
+}
+
 export function rewardArt(id) {
+    if (id === 'chest') return pirateChestArt();
     if (['gift', 'cake', 'car', 'house', 'rocket', 'bear'].includes(id)) return `<use href="trail.svg#${id}"/>`;
     if (!rewardShapes[id]) throw new Error(`Missing reward artwork: ${id}`);
     return ellipse(60, 112, 40, 4, '#544a4614', 'stroke="none"') + rewardShapes[id];

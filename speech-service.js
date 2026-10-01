@@ -165,10 +165,33 @@ export class SpeechService {
     }
 
     async pruneCache() {
-        const files = (await readdir(this.cacheDirectory)).filter(name => /^[a-f0-9]{64}\.wav$/.test(name));
+        let names;
+        try { names = await readdir(this.cacheDirectory); }
+        catch (error) { if (error.code === 'ENOENT') return; throw error; }
+        const files = names.filter(name => /^[a-f0-9]{64}\.wav$/.test(name));
         if (files.length <= this.maxCacheFiles) return;
         const dates = await Promise.all(files.map(async name => ({ name, modified: (await stat(join(this.cacheDirectory, name))).mtimeMs })));
         dates.sort((a, b) => b.modified - a.modified);
         await Promise.all(dates.slice(this.maxCacheFiles).map(file => rm(join(this.cacheDirectory, file.name), { force: true })));
+    }
+
+    setLimits({ maxCacheFiles, maxPendingSpeech }) {
+        this.maxCacheFiles = maxCacheFiles;
+        this.maxPending = maxPendingSpeech;
+        // Serialize cache cleanup with synthesis; in-flight audio remains playable.
+        const trim = this.queue.then(() => this.pruneCache());
+        this.queue = trim.catch(() => {});
+        return trim;
+    }
+
+    async cacheStats() {
+        let names;
+        try { names = await readdir(this.cacheDirectory); }
+        catch (error) { if (error.code === 'ENOENT') return { cacheFiles: 0, cacheBytes: 0 }; throw error; }
+        const entries = await Promise.all(names.filter(name => /^[a-f0-9]{64}\.wav$/.test(name)).map(async name => {
+            try { return await stat(join(this.cacheDirectory, name)); }
+            catch (error) { if (error.code === 'ENOENT') return null; throw error; }
+        }));
+        return { cacheFiles: entries.filter(Boolean).length, cacheBytes: entries.reduce((total, entry) => total + (entry?.size ?? 0), 0) };
     }
 }

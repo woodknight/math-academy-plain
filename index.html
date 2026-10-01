@@ -48,6 +48,7 @@
                 aria-hidden="true"><span></span><span></span><span></span><span></span></span>little sums<span
                 class="brand-period">.</span></a>
         <nav aria-label="Game options">
+            <button class="header-button player-button" id="player-button" aria-haspopup="dialog" aria-controls="player-dialog"><span class="player-avatar" aria-hidden="true">☺</span><span id="player-label">Create profile / Log in</span></button>
             <button class="header-button" id="sound-toggle" aria-label="Sound on" aria-pressed="true"><svg class="icon">
                     <use href="#i-sound" />
                 </svg><span>Sound on</span></button>
@@ -189,7 +190,18 @@
                     <div><h3 id="journey-status">A surprise is 5 steps away!</h3><p id="journey-detail">2 steps back to the hungry creature. Let’s go!</p></div>
                     <button class="journey-again" id="journey-again" hidden>Let’s go again <svg class="icon"><use href="#i-arrow"/></svg></button>
                 </div>
-                <div class="treasure-shelf"><div class="treasure-heading"><span>YOUR LITTLE TREASURES</span><span id="treasure-count">0 collected</span></div><div id="treasure-items"><span class="treasure-empty">Good things are waiting at the end of the trail.</span></div></div>
+                <div class="treasure-shelf">
+                    <button class="treasure-box-button" id="treasure-box" aria-haspopup="dialog" aria-controls="treasure-dialog">
+                        <span class="treasure-box-art" id="treasure-box-art" aria-hidden="true"></span>
+                        <span class="treasure-box-copy"><strong id="treasure-owner">Your treasure box</strong><span id="treasure-count">0 collected · Open the box</span></span>
+                        <span class="treasure-box-arrow" aria-hidden="true">↗</span>
+                    </button>
+                    <p class="reward-tier" id="reward-tier">Easy adventures · Classic treasures ★</p>
+                    <div class="treasure-panel-items" id="treasure-panel-items" aria-label="Your collected treasures"></div>
+                    <p class="treasure-panel-empty" id="treasure-panel-empty">No treasure yet. Five right steps will bring your first prize!</p>
+                    <p class="treasure-save-status" id="treasure-save-status" role="status">Create a profile to keep your treasures.</p>
+                    <button class="text-button" id="retry-treasures" hidden>Retry saving</button>
+                </div>
             </section>
             </div>
             <div class="below-card"><span><svg class="icon">
@@ -200,6 +212,94 @@
     </main>
     <footer class="site-footer"><span>A little curiosity. A little practice. <span class="footer-heart">♡</span> A lot
             of possibility.</span></footer>
+
+    <dialog id="player-dialog" aria-labelledby="player-title">
+        <button class="close-help" data-close-dialog="player-dialog" aria-label="Close player profile">×</button>
+        <span class="eyebrow">YOUR OWN LITTLE ADVENTURE</span>
+        <h2 id="player-title">Welcome, little explorer.</h2>
+        <div id="player-auth">
+            <p>Create a profile to save every treasure, or log in to open your own box. Guest treasures stay in this visit.</p>
+            <div class="segmented player-auth-tabs" role="group" aria-label="Player account">
+                <button type="button" id="choose-register" class="selected" aria-pressed="true">Create profile</button>
+                <button type="button" id="choose-login" aria-pressed="false">Log in</button>
+            </div>
+            <form id="player-form">
+                <label id="player-name-field">Player name<input name="name" id="player-name" autocomplete="nickname" maxlength="40" required placeholder="What shall we call you?"></label>
+                <label>Username<input name="username" id="player-username" autocomplete="username" minlength="3" maxlength="24" pattern="[A-Za-z0-9_-]{3,24}" required spellcheck="false" autocapitalize="none" placeholder="Your login name"></label>
+                <span class="field-hint">3–24 letters, numbers, underscores or hyphens.</span>
+                <label>Password<input name="password" id="player-password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required placeholder="At least 8 characters"></label>
+                <button class="start-button player-submit" id="player-submit" type="submit">Create my profile</button>
+            </form>
+        </div>
+        <div id="player-details" hidden>
+            <div class="profile-portrait" id="profile-avatar" aria-hidden="true"></div>
+            <p id="player-summary"></p>
+            <p id="profile-birthday"></p>
+            <div class="profile-actions" id="profile-actions">
+                <button class="start-button" id="profile-open-box">Open my treasure box</button>
+                <button class="text-button" id="profile-edit">Edit profile</button>
+                <button class="text-button" id="admin-open-settings" hidden>Server settings</button>
+                <button class="text-button logout-button" id="player-logout">Log out</button>
+            </div>
+            <form id="profile-edit-form" hidden>
+                <label>Player name<input id="edit-player-name" autocomplete="nickname" maxlength="40" required></label>
+                <label>Username<input id="edit-player-username" autocomplete="username" minlength="3" maxlength="24" pattern="[A-Za-z0-9_-]{3,24}" required spellcheck="false" autocapitalize="none"></label>
+                <span class="field-hint">Use this username the next time you log in.</span>
+                <fieldset class="avatar-fieldset"><legend>Choose your avatar</legend><div class="avatar-options" id="avatar-options"></div></fieldset>
+                <fieldset class="avatar-photo-fieldset"><legend>Or use your own photo</legend>
+                    <label class="photo-upload-label">Upload photo<input id="avatar-upload" type="file" accept="image/jpeg,image/png,image/webp"></label>
+                    <span class="field-hint">JPG, PNG or WebP · up to 10 MB. Only your cropped avatar is saved.</span>
+                    <img id="avatar-photo-preview" class="avatar-photo-preview" alt="Your saved avatar photo" hidden>
+                    <div id="avatar-crop-controls" hidden>
+                        <canvas id="avatar-crop" width="256" height="256" aria-label="Avatar crop preview. Drag to move your photo."></canvas>
+                        <span class="field-hint">Drag the photo, or adjust its position below.</span>
+                        <label>Zoom<input id="avatar-zoom" type="range" min="1" max="3" step="0.01" value="1"></label>
+                        <label>Horizontal position<input id="avatar-x" type="range" min="0" max="1" step="0.001" value="0.5"></label>
+                        <label>Vertical position<input id="avatar-y" type="range" min="0" max="1" step="0.001" value="0.5"></label>
+                    </div>
+                    <button class="text-button" id="avatar-remove" type="button" hidden>Use selected illustrated avatar</button>
+                </fieldset>
+                <label>Birthday <span class="optional-field">(optional)</span><input id="edit-player-birthday" type="date" min="0001-01-01" autocomplete="bday"></label>
+                <span class="field-hint">Leave blank to keep your birthday unset.</span>
+                <div class="profile-edit-actions"><button class="start-button" id="profile-save" type="submit">Save changes</button><button class="text-button" id="profile-cancel" type="button">Cancel</button></div>
+            </form>
+            <p class="profile-saved" id="profile-saved" role="status" hidden>Profile saved!</p>
+        </div>
+        <p id="player-error" class="player-error" role="alert" hidden></p>
+        <button class="text-button" id="retry-player" hidden>Try connecting again</button>
+    </dialog>
+
+    <dialog id="admin-dialog" aria-labelledby="admin-title">
+        <button class="close-help" id="admin-close" aria-label="Close server settings">×</button>
+        <span class="eyebrow">ADMINISTRATOR</span>
+        <h2 id="admin-title">Server settings</h2>
+        <p>Changes are saved on this server and apply to new requests. Active speech finishes normally.</p>
+        <form id="admin-form">
+            <label>Cached audio files limit<input id="admin-cache-limit" type="number" min="0" max="10000" step="1" required></label>
+            <span class="field-hint">0–10,000 files. Older audio is removed when the limit drops. Set 0 to keep no audio on disk; questions can be generated again.</span>
+            <label>Speech queue limit<input id="admin-queue-limit" type="number" min="1" max="32" step="1" required></label>
+            <span class="field-hint">1–32 synthesis requests, including the active request. A smaller queue limits waiting work.</span>
+            <label class="admin-switch"><input id="admin-speech-enabled" type="checkbox">Enable spoken questions</label>
+            <label class="admin-switch"><input id="admin-registration-enabled" type="checkbox">Allow new player profiles</label>
+            <span class="field-hint">Existing players can still log in when new profiles are disabled.</span>
+            <div class="admin-actions"><button class="start-button" id="admin-save" type="submit">Save settings</button><button class="text-button" id="admin-defaults" type="button">Use defaults</button></div>
+        </form>
+        <p class="admin-message" id="admin-message" role="status" hidden></p>
+        <p class="player-error" id="admin-error" role="alert" hidden></p>
+        <div class="admin-status"><h3>Server status</h3><dl id="admin-status-values"></dl></div>
+        <button class="text-button" id="admin-reload">Reload settings and status</button>
+        <p class="field-hint">Reloading replaces any unsaved changes.</p>
+    </dialog>
+
+    <dialog id="treasure-dialog" aria-labelledby="treasure-title">
+        <button class="close-help" data-close-dialog="treasure-dialog" aria-label="Close treasure box">×</button>
+        <span class="eyebrow">LITTLE WINS, LOVELY FINDS</span>
+        <h2 id="treasure-title">Your treasure box</h2>
+        <p id="treasure-summary"></p>
+        <div class="treasure-grid" id="treasure-items"></div>
+        <p class="treasure-empty-state" id="treasure-empty">Your box is waiting for its first surprise! Reach the end of an adventure to collect a treasure.</p>
+        <button class="text-button" id="treasure-create-profile">Create a profile / Log in to save treasures</button>
+    </dialog>
 
     <dialog id="help-dialog" aria-labelledby="help-title"><button id="close-help" class="close-help"
             aria-label="Close instructions">×</button><span class="eyebrow">READY, SET, GROW</span>
@@ -212,7 +312,8 @@
             <li>In Dots mode, a correct answer flips the dot cards into a number sentence. Listen to it once, then take 2 seconds to look before the next dot question appears.</li>
             <li>A right answer earns a happy little win! If it’s not quite right, listen to the question again and give it another try. After 3 wrong attempts on the same question, see the correct answer for 3 seconds before the next question appears.</li>
             <li>Milo starts 5 steps from the gift and 2 steps from the creature. Each adventure picks a new world and activity: climb stairs, scale walls, swim, ski, fly, and more. A right answer moves him one step toward a random gift; a wrong answer moves him one step toward a hungry creature.</li>
-            <li>Reach the finish to collect one of 60 surprise prizes. After the celebration, Milo automatically starts a new adventure. Go back to the snack stop and one of 60 silly creatures gobbles Milo up! Choose “Let’s go again” for a fresh adventure.</li>
+            <li>Reach the finish to collect one of 60 surprise prizes. Medium adventures earn Silver prizes; Hard adventures earn Golden prizes. Changing difficulty starts a fresh adventure. After the celebration, Milo automatically starts a new adventure. Go back to the snack stop and one of 60 silly creatures gobbles Milo up! A bouncy sad tune plays before a fresh adventure starts automatically.</li>
+            <li>Create a player profile or log in from the top of the page to keep your prizes. Click your treasure box to see every kind you have collected, with matching treasures stacked together. Guest play keeps treasures only for this visit.</li>
         </ol>
         <p>Choose <strong>Let’s play</strong> to turn on spoken questions. Listen for Milo’s little footsteps, a cheerful prize fanfare, and a silly creature gulp! The sound button turns voices and all sound effects on or off. There’s no timer, so take your time.</p><button id="help-done" class="start-button">Got it<svg
                 class="icon">

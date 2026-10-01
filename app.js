@@ -2,6 +2,9 @@ import { generateProblem, checkAnswer, questionText, solutionText, advanceTrail,
 import { chooseAdventure, trailPoints, CREATURES } from './adventures.js';
 import { landscapeArt, routeArt, gearArt, rewardArt, creatureArt } from './adventure-art.js';
 import { SpeechPlayer } from './speech.js';
+import { PlayerUI } from './player.js';
+import { TREASURE_TIERS, upgradeTreasure } from './treasures.js';
+import { RoundMusicPlayer } from './round-music.js';
 
 const $ = (selector) => document.querySelector(selector);
 const answerInput = $('#answer');
@@ -23,12 +26,13 @@ let showingNumericSolution = false;
 let round = 0;
 let audioContext;
 const activeSounds = new Set();
+const roundMusic = new RoundMusicPlayer(() => audioContext);
+let roundMusicPlaying = false;
 let trailPosition = TRAIL_START;
 let trailOutcome = null;
 let adventure = null;
 let encounter = null;
 let adventureNumber = 0;
-const treasures = [];
 const traveler = $('#traveler');
 const trailScene = $('#trail-scene');
 const journeyCard = $('#journey-card');
@@ -45,18 +49,25 @@ const speechPlayer = new SpeechPlayer({
 function setLocked(value) {
     locked = value;
     answerInput.readOnly = value;
-    document.querySelectorAll('.number-pad button, #mode-options button, #display-options button, #difficulty').forEach((control) => {
+    document.querySelectorAll('.number-pad button, #mode-options button, #display-options button, #difficulty, #player-button').forEach((control) => {
         control.disabled = value;
     });
 }
 
-function sprite(id, kind = 'reward') {
+function sprite(id, kind = 'reward', tier = 'classic') {
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('viewBox', '0 0 120 120');
     svg.setAttribute('aria-hidden', 'true');
     svg.dataset.item = id;
+    svg.dataset.tier = tier;
     // Artwork comes only from the local, fixed catalogues.
     svg.innerHTML = kind === 'creature' ? creatureArt(id) : rewardArt(id);
+    if (kind === 'reward' && tier !== 'classic') {
+        const color = tier === 'gold' ? '#e3ac28' : '#92afc8';
+        const decor = `<circle cx="60" cy="60" r="55" fill="none" stroke="${color}" stroke-width="4" stroke-dasharray="3 5"/>`;
+        const crown = tier === 'gold' ? '<path d="m40 18 2-14 10 8 8-11 8 11 10-8 2 14Z" fill="#ffd366" stroke="#b78220" stroke-width="2"/>' : '';
+        svg.innerHTML = decor + svg.innerHTML + crown + `<path d="m101 20 3 8 8 3-8 3-3 8-3-8-8-3 8-3Z" fill="${color}"/>`;
+    }
     return svg;
 }
 
@@ -80,17 +91,13 @@ function renderTrailPosition() {
     $('#adventure-path').innerHTML = routeArt(adventure, trailPosition);
 }
 
-function renderTreasures() {
-    $('#treasure-count').textContent = `${treasures.length} collected`;
-    $('#treasure-items').replaceChildren(...treasures.slice(-3).map((item) => {
-        const chip = document.createElement('span');
-        chip.className = 'treasure-chip';
-        const label = document.createElement('span');
-        label.textContent = item.label;
-        chip.append(sprite(item.id), label);
-        return chip;
-    }));
-}
+const playerUI = new PlayerUI({
+    sprite,
+    onOpen: () => stopSpeech(),
+    onClose: () => {
+        if (started && !locked && !document.querySelector('dialog[open]')) speak(questionText(problem));
+    },
+});
 
 function celebrate() {
     const colors = ['#e9a18c', '#a4bd87', '#e5c879', '#b9acd4'];
@@ -124,16 +131,16 @@ async function moveMilo(correct) {
         return;
     }
 
-    const { type, item } = trailOutcome;
+    const { type } = trailOutcome;
+    const item = type === 'reward' ? upgradeTreasure(trailOutcome.item, difficulty) : trailOutcome.item;
     journeyCard.classList.add('finished');
     trailScene.setAttribute('aria-label', type === 'reward' ? `Milo reached the finish and received ${item.name}.` : `Milo reached the snack stop and was gobbled up by ${item.name}.`);
     if (type === 'reward') {
         trailScene.classList.add('reward');
         trailScene.dataset.phase = 'reward';
-        $('#trail-prize').replaceChildren(sprite(item.id));
+        $('#trail-prize').replaceChildren(sprite(item.id, 'reward', item.tier));
         traveler.classList.add('celebrating');
-        treasures.push(item);
-        renderTreasures();
+        playerUI.collect(item);
         celebrate();
         playSound('reward');
         trailMessage(`Hooray! You found ${item.name}!`, 'Enjoy your prize. A new adventure is coming!');
@@ -142,7 +149,7 @@ async function moveMilo(correct) {
         const celebrationAnimations = trailScene.getAnimations({ subtree: true })
             .filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity);
         await Promise.all([
-            wait(900),
+            flyTreasure(item),
             ...celebrationAnimations.map((animation) => animation.finished.catch(() => { })),
         ]);
         return;
@@ -158,10 +165,51 @@ async function moveMilo(correct) {
         await wait(1100);
         trailScene.dataset.phase = 'eaten';
     }
-    if (!revealingAnswer) {
-        $('#journey-again').hidden = false;
-        $('#answer-hint').textContent = 'Choose “Let’s go again” to start a new adventure.';
-    }
+    $('#answer-hint').textContent = 'A fresh adventure starts after the music.';
+}
+
+async function flyTreasure(item) {
+    await wait(650);
+    const source = $('#trail-prize');
+    const target = $('#treasure-box-art');
+    const from = source.getBoundingClientRect();
+    const to = target.getBoundingClientRect();
+    const flight = document.createElement('div');
+    flight.className = 'treasure-flight';
+    flight.append(sprite(item.id, 'reward', item.tier));
+    Object.assign(flight.style, { left: `${from.left}px`, top: `${from.top}px`, width: `${from.width}px`, height: `${from.height}px` });
+    document.body.append(flight);
+    source.style.visibility = 'hidden';
+    trailScene.dataset.phase = 'collecting';
+    try {
+        const dx = to.left + to.width / 2 - from.left - from.width / 2;
+        const dy = to.top + to.height / 2 - from.top - from.height / 2;
+        const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const frames = reduced ? [{ opacity: 1 }, { opacity: 0 }] : [
+            { transform: 'translate(0, 0) scale(1.15) rotate(-8deg)', opacity: 1 },
+            { transform: `translate(${dx * .35}px, ${Math.min(-90, dy * .2)}px) scale(1.35) rotate(12deg)`, opacity: 1, offset: .4 },
+            { transform: `translate(${dx}px, ${dy}px) scale(.3) rotate(-15deg)`, opacity: .9 },
+        ];
+        if (flight.animate) await flight.animate(frames, { duration: reduced ? 180 : 1400, easing: 'cubic-bezier(.4,0,.3,1)' }).finished.catch(() => {});
+        else await wait(180);
+        target.classList.add('receiving');
+        const tile = Array.from(document.querySelectorAll('#treasure-panel-items .treasure-stack')).find(tile => tile.dataset.key === item.key);
+        tile?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+        tile?.animate?.([{ backgroundColor: '#ffe5a0', transform: 'scale(1.12)' }, { transform: 'scale(1)' }], { duration: 700 });
+        await wait(reduced ? 150 : 700);
+    } catch { /* A missing animation must never prevent the next adventure. */ }
+    finally { flight.remove(); target.classList.remove('receiving'); }
+}
+
+async function playRoundMusic(outcome) {
+    stopSpeech();
+    roundMusicPlaying = true;
+    trailScene.dataset.phase = outcome === 'reward' ? 'win-music' : 'loss-music';
+    $('#answer-hint').textContent = outcome === 'reward' ? 'A little victory tune! Next adventure coming…' : 'A bouncy little sad tune. Let’s try a fresh adventure!';
+    try {
+        if (soundEnabled && audioContext?.state === 'running') await roundMusic.play(outcome);
+        else await wait(650);
+    } finally { roundMusicPlaying = false; }
 }
 
 function resetTrail() {
@@ -183,6 +231,9 @@ function resetTrail() {
     $('#journey-title').textContent = adventure.activity.label;
     $('#adventure-description').textContent = adventure.activity.detail;
     $('#trail-prize').replaceChildren(sprite('gift'));
+    $('#trail-prize').style.removeProperty('visibility');
+    const tier = TREASURE_TIERS[difficulty];
+    $('#reward-tier').textContent = `${difficulty[0].toUpperCase() + difficulty.slice(1)} adventures · ${tier.label} treasures ${'★'.repeat(tier.stars)}`;
     $('#trail-encounter').replaceChildren(sprite(encounter.id, 'creature'));
     $('#trail-confetti').replaceChildren();
     $('#journey-again').hidden = true;
@@ -201,7 +252,7 @@ function stopSpeech() {
 
 function speak(text) {
     stopSpeech();
-    if (!soundEnabled || !started || helpDialog.open) return Promise.resolve();
+    if (roundMusicPlaying || !soundEnabled || !started || document.querySelector('dialog[open]')) return Promise.resolve();
     return speechPlayer.play(text);
 }
 
@@ -218,6 +269,7 @@ function unlockAudio() {
 }
 
 function stopSounds() {
+    roundMusic.stop();
     for (const oscillator of activeSounds) {
         oscillator.stop();
     }
@@ -372,7 +424,7 @@ function showFeedback(text) {
 }
 
 function focusAnswer() {
-    if (window.matchMedia('(pointer: fine)').matches && !helpDialog.open) answerInput.focus({ preventScroll: true });
+    if (window.matchMedia('(pointer: fine)').matches && !document.querySelector('dialog[open]')) answerInput.focus({ preventScroll: true });
 }
 
 function startGame(readQuestion = true) {
@@ -425,7 +477,7 @@ async function evaluate(submitted = false) {
             await Promise.all([wait(1600), movement, answerSpeech]);
         }
         if (round !== currentRound) return;
-        if (trailOutcome?.type === 'reward') resetTrail();
+        if (trailOutcome?.type === 'reward') { await playRoundMusic('reward'); resetTrail(); }
         questionNumber++;
         nextProblem();
         focusAnswer();
@@ -445,7 +497,7 @@ async function evaluate(submitted = false) {
             speak(solutionText(problem));
             await Promise.all([movement, wait(3000)]);
             if (round !== currentRound) return;
-            if (trailOutcome) resetTrail();
+            if (trailOutcome) { await playRoundMusic(trailOutcome.type); resetTrail(); }
             questionNumber++;
             nextProblem();
             focusAnswer();
@@ -453,8 +505,15 @@ async function evaluate(submitted = false) {
         }
         await Promise.all([movement, wait(800)]);
         if (round !== currentRound) return;
+        if (trailOutcome) {
+            await playRoundMusic(trailOutcome.type);
+            resetTrail();
+            questionNumber++;
+            nextProblem();
+            focusAnswer();
+            return;
+        }
         speak(questionText(problem));
-        if (trailOutcome) return;
         answerInput.value = '';
         setLocked(false);
         card.classList.remove('wrong');
@@ -489,7 +548,7 @@ answerInput.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && !locked) answerInput.value = '';
 });
 document.addEventListener('keydown', (event) => {
-    if (event.ctrlKey || event.metaKey || event.altKey || event.repeat || helpDialog.open) return;
+    if (event.ctrlKey || event.metaKey || event.altKey || event.repeat || document.querySelector('dialog[open]')) return;
     if (event.target.closest('input, select, textarea, [contenteditable="true"]')) return;
     if (/^\d$/.test(event.key) || event.key === 'Backspace' || (event.key === 'Enter' && event.target === document.body)) {
         event.preventDefault();
@@ -521,6 +580,7 @@ $('#mode-options').addEventListener('click', (event) => {
 $('#difficulty').addEventListener('change', (event) => {
     if (locked) return;
     difficulty = event.target.value;
+    resetTrail();
     unlockAudio();
     nextProblem();
 });
@@ -578,4 +638,7 @@ helpDialog.addEventListener('close', () => {
 window.addEventListener('pagehide', () => { stopSpeech(); stopSounds(); });
 renderProblem();
 resetTrail();
+setLocked(true);
+await playerUI.init();
+setLocked(false);
 prepareSpeech();
