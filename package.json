@@ -6,9 +6,17 @@
     "scripts": {
         "start": "node server.js",
         "dev": "node server.js",
+        "setup:voice": "node scripts/setup-voice.js",
         "test": "node --test"
     },
     "engines": {
-        "node": ">=18"
+        "node": ">=20.19"
+    },
+    "dependencies": {
+        "@huggingface/transformers": "3.8.1",
+        "kokoro-js": "1.2.1"
+    },
+    "overrides": {
+        "sharp": "0.35.5"
     }
 }

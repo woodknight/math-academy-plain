@@ -1,22 +1,11 @@
 export const LIMITS = { easy: 10, medium: 20, hard: 50 };
 
-export const TRAIL_START = 3;
-export const TRAIL_END = TRAIL_START + 10;
-export const REWARDS = [
-    { id: 'cake', name: 'a giant strawberry cake', label: 'Giant cake' },
-    { id: 'car', name: 'a shiny little car', label: 'Little car' },
-    { id: 'house', name: 'a dreamy little house', label: 'Dream house' },
-    { id: 'rocket', name: 'your very own rocket', label: 'Rocket' },
-    { id: 'bear', name: 'a cuddly teddy bear', label: 'Teddy bear' },
-];
-export const CREATURES = [
-    { id: 'monster', name: 'a marshmallow monster', label: 'Marshmallow monster' },
-    { id: 'dinosaur', name: 'a tiny dinosaur', label: 'Tiny dinosaur' },
-    { id: 'frog', name: 'a very hungry frog', label: 'Hungry frog' },
-    { id: 'yeti', name: 'a fluffy little yeti', label: 'Fluffy yeti' },
-];
+import { REWARDS, CREATURES } from './adventures.js';
+export { REWARDS, CREATURES } from './adventures.js';
+export const TRAIL_START = 2;
+export const TRAIL_END = TRAIL_START + 5;
 
-export function advanceTrail(position, correct, random = Math.random) {
+export function advanceTrail(position, correct, random = Math.random, encounter = null) {
     // A finished adventure cannot issue another prize or punishment.
     if (position <= 0 || position >= TRAIL_END) return { position, outcome: null };
     const next = position + (correct ? 1 : -1);
@@ -24,7 +13,7 @@ export function advanceTrail(position, correct, random = Math.random) {
     const choices = type === 'reward' ? REWARDS : CREATURES;
     return {
         position: next,
-        outcome: type ? { type, item: choices[Math.floor(random() * choices.length)] } : null,
+        outcome: type ? { type, item: type === 'creature' && encounter ? encounter : choices[Math.floor(random() * choices.length)] } : null,
     };
 }
 

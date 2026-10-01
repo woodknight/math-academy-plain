@@ -1426,6 +1426,12 @@ h1 {
     font-size: 23px;
 }
 
+.voice-notice {
+    color: #aa735b;
+    font-size: 11px;
+    margin: 8px 18px 0;
+}
+
 .equation {
     gap: 16px;
     padding: 0 24px;
@@ -1515,117 +1521,50 @@ h1 {
     inset: 0;
 }
 
-.scene-label {
+.adventure-variety {
+    display: block;
+    margin-top: 8px;
+    font-size: 9px;
+    color: #98a18a;
+}
+
+.trail-rail,
+.adventure-path {
     position: absolute;
-    top: 77px;
-    font-size: 7px;
-    font-weight: 700;
-    letter-spacing: .9px;
-    color: #778567;
-    padding: 5px 7px;
-    border-radius: 5px;
-    background: #f9f9edbb;
+    inset: 0;
+    width: 100%;
+    height: 100%;
 }
 
-.scene-label-left {
-    left: 15px;
-    transform: rotate(-4deg);
-}
-
-.scene-label-right {
-    right: 13px;
-    transform: rotate(4deg);
-}
-
-.trail-rail {
-    position: absolute;
-    left: 59px;
-    right: 59px;
-    bottom: 40px;
-    height: 40px;
-}
-
-.trail-road {
-    position: absolute;
-    inset: 0 -80px;
-    border-radius: 50%;
-    background: #e9d8b5;
-    border-top: 3px solid #f6e8ce;
-    border-bottom: 4px solid #d5c79f;
-    box-shadow: 0 5px 0 #aebf8a30;
-}
-
-.trail-road::after {
-    content: '';
-    position: absolute;
-    left: 10px;
-    right: 10px;
-    top: 17px;
-    border-top: 2px dashed #c7b78d;
-}
-
-.trail-markers {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    position: absolute;
-    inset: 0 -7px;
+.adventure-path {
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 
 .trail-marker {
-    width: 14px;
-    height: 14px;
-    border: 2px solid #cabc9a;
-    border-radius: 50%;
-    background: #f7edda;
-    transition: background .3s, border-color .3s;
-}
-
-.trail-marker.current {
-    background: #87a076;
-    border-color: #f8f7e6;
-    box-shadow: 0 0 0 3px #87a07650;
-}
-
-.trail-marker.start::after {
-    content: '';
-    display: block;
-    width: 4px;
-    height: 4px;
-    margin: 3px;
-    background: #cabc9a;
-    border-radius: 50%;
-}
-
-.trail-start-label {
-    position: absolute;
-    left: var(--start-progress);
-    bottom: -23px;
-    transform: translateX(-50%);
-    color: #778565;
-    font-size: 7px;
-    font-weight: 700;
-    letter-spacing: 1.4px;
+    transition: fill .25s;
 }
 
 .trail-encounter,
 .trail-prize {
     position: absolute;
-    bottom: 14px;
-    width: 87px;
-    height: 87px;
+    bottom: var(--encounter-bottom);
+    width: 76px;
+    height: 76px;
     transform: translateX(-50%);
 }
 
 .trail-encounter {
-    left: 0;
-    opacity: .85;
+    left: var(--encounter-x);
+    opacity: .9;
 }
 
 .trail-prize {
-    left: 100%;
-    width: 76px;
-    height: 76px;
+    left: var(--prize-x);
+    bottom: var(--prize-bottom);
+    width: 70px;
+    height: 70px;
 }
 
 .trail-encounter svg,
@@ -1652,11 +1591,10 @@ h1 {
 .traveler {
     position: absolute;
     left: var(--progress);
-    bottom: 14px;
-    width: 77px;
-    height: 101px;
+    width: 68px;
+    height: 88px;
     transform: translateX(-50%);
-    transition: left .7s cubic-bezier(.45, 0, .25, 1);
+    transition: left .7s cubic-bezier(.45, 0, .25, 1), bottom .7s cubic-bezier(.45, 0, .25, 1);
     z-index: 2;
 }
 
@@ -1665,7 +1603,7 @@ h1 {
     width: 42px;
     height: 8px;
     bottom: -2px;
-    left: 18px;
+    left: 13px;
     border-radius: 50%;
     background: #6d6b4530;
     transition: opacity .3s;
@@ -1674,6 +1612,218 @@ h1 {
 .traveler-motion {
     width: 100%;
     height: 100%;
+    position: relative;
+}
+
+.milo-gear {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    fill: none;
+    stroke: #685c4e;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    pointer-events: none;
+}
+
+.trail-scene[data-motion="stairs"] .traveler.walking .traveler-motion {
+    animation: stair-climb .36s ease-in-out 2;
+}
+
+.trail-scene:is([data-motion="wall"], [data-motion="ladder"]) .traveler.walking .traveler-motion {
+    animation: climbing-reach .35s ease-in-out 2;
+}
+
+.trail-scene[data-motion="wall"] .traveler.walking .milo-arm {
+    animation: wall-reach .35s ease-in-out 2 alternate;
+    transform-origin: 50px 72px;
+}
+
+.trail-scene[data-motion="ladder"] .traveler.walking .milo-arm {
+    animation: ladder-reach .35s ease-in-out 2 alternate;
+    transform-origin: 50px 72px;
+}
+
+.trail-scene:is([data-motion="wall"], [data-motion="ladder"]) .traveler.walking .milo-arm-right {
+    animation-direction: alternate-reverse;
+}
+
+.trail-scene[data-motion="mountain"] .traveler.walking .traveler-motion {
+    animation: hiking-lean .35s ease-in-out 2;
+}
+
+.trail-scene:is([data-motion="swim"], [data-motion="boat"], [data-motion="ski"], [data-motion="fly"], [data-motion="tunnel"]) .milo {
+    animation: none;
+}
+
+.trail-scene[data-motion="swim"] .milo {
+    transform: translateY(8px) rotate(64deg) scale(.85);
+    transform-origin: 50% 58%;
+}
+
+.trail-scene[data-motion="swim"] .milo-gear {
+    transform: translateY(8px) rotate(64deg) scale(.85);
+    transform-origin: 50% 58%;
+}
+
+.trail-scene[data-motion="swim"] .traveler.backward .milo,
+.trail-scene[data-motion="swim"] .traveler.backward .milo-gear {
+    transform: translateY(8px) rotate(58deg) scale(.85);
+}
+
+.trail-scene[data-motion="swim"] .traveler.walking .milo-arm {
+    animation: swimming-stroke .35s ease-in-out 2 alternate;
+    transform-origin: 50px 72px;
+}
+
+.trail-scene[data-motion="swim"] .traveler.walking .milo-arm-right {
+    animation-direction: alternate-reverse;
+}
+
+.trail-scene:is([data-motion="swim"], [data-motion="boat"]) .traveler-shadow {
+    border: 2px solid #e8f7eb99;
+    width: 64px;
+    left: 2px;
+    background: transparent;
+}
+
+.trail-scene[data-motion="swim"] .traveler.walking .traveler-motion {
+    animation: swimming-bob .35s ease-in-out 2;
+}
+
+.trail-scene[data-motion="jump"] .traveler.walking .traveler-motion {
+    animation: stone-hop .7s ease-in-out;
+}
+
+.trail-scene[data-motion="rope"] .traveler.walking .traveler-motion {
+    animation: bridge-balance .35s ease-in-out 2;
+}
+
+.trail-scene[data-motion="ski"] .milo {
+    transform: rotate(12deg);
+}
+
+.trail-scene[data-motion="ski"] .traveler.walking .traveler-motion {
+    animation: ski-glide .7s ease-in-out;
+}
+
+.trail-scene:is([data-motion="ski"], [data-motion="fly"], [data-motion="boat"]) .traveler.walking .milo-leg {
+    animation: none;
+}
+
+.trail-scene[data-motion="fly"] .traveler.walking .traveler-motion {
+    animation: balloon-drift .7s ease-in-out;
+}
+
+.trail-scene[data-motion="boat"] .milo {
+    clip-path: inset(0 0 16% 0);
+    transform: translateY(-7px);
+}
+
+.trail-scene[data-motion="boat"] .traveler.backward .milo {
+    transform: translateY(-7px) rotate(-3deg);
+}
+
+.trail-scene[data-motion="boat"] .traveler.walking .traveler-motion {
+    animation: canoe-rock .35s ease-in-out 2;
+}
+
+.trail-scene[data-motion="boat"] .traveler.walking .milo-gear {
+    animation: paddle-sweep .35s ease-in-out 2;
+}
+
+.trail-scene[data-motion="tunnel"] .milo,
+.trail-scene[data-motion="tunnel"] .milo-gear {
+    transform: scaleY(.83);
+    transform-origin: 50% 100%;
+}
+
+.trail-scene[data-motion="tunnel"] .traveler.backward .milo {
+    transform: scaleY(.83) rotate(-3deg);
+}
+
+.trail-scene[data-motion="tunnel"] .traveler.walking .traveler-motion {
+    animation: tunnel-crouch .35s ease-in-out 2;
+}
+
+.trail-scene .traveler.eaten .traveler-motion {
+    animation: milo-gobbled .9s ease-in forwards;
+}
+
+.trail-scene .traveler.celebrating .traveler-motion {
+    animation: milo-celebrate .6s ease-in-out 3;
+}
+
+.trail-scene[data-motion="fly"] .traveler.celebrating {
+    --celebrate-rise: -5px;
+    --celebrate-settle: -3px;
+}
+
+.traveler.celebrating .milo-name {
+    opacity: 0;
+}
+
+@keyframes stair-climb {
+    45% { transform: translateY(-7px) rotate(-3deg); }
+}
+
+@keyframes climbing-reach {
+    50% { transform: translateY(-4px) rotate(4deg); }
+}
+
+@keyframes wall-reach {
+    from { transform: rotate(-100deg); }
+    to { transform: rotate(15deg); }
+}
+
+@keyframes ladder-reach {
+    from { transform: rotate(-75deg); }
+    to { transform: rotate(10deg); }
+}
+
+@keyframes hiking-lean {
+    50% { transform: translateY(-4px) rotate(7deg); }
+}
+
+@keyframes swimming-stroke {
+    from { transform: rotate(-90deg); }
+    to { transform: rotate(45deg); }
+}
+
+@keyframes swimming-bob {
+    50% { transform: translateY(-3px) rotate(-3deg); }
+}
+
+@keyframes stone-hop {
+    50% { transform: translateY(-24px) rotate(-6deg); }
+}
+
+@keyframes bridge-balance {
+    25% { transform: rotate(-7deg); }
+    75% { transform: rotate(7deg); }
+}
+
+@keyframes ski-glide {
+    50% { transform: translateY(-3px) rotate(5deg); }
+}
+
+@keyframes balloon-drift {
+    50% { transform: translateY(-8px) rotate(-5deg); }
+}
+
+@keyframes canoe-rock {
+    50% { transform: rotate(-6deg); }
+}
+
+@keyframes paddle-sweep {
+    50% { transform: rotate(-10deg); }
+}
+
+@keyframes tunnel-crouch {
+    50% { transform: translateY(-3px) rotate(4deg); }
 }
 
 .milo {
@@ -1732,10 +1882,10 @@ h1 {
 }
 
 .trail-scene.reward .trail-prize {
-    left: 83%;
-    bottom: 89px;
-    width: 92px;
-    height: 92px;
+    left: var(--reward-x);
+    bottom: calc(var(--prize-bottom) + 30px);
+    width: 76px;
+    height: 76px;
     transition: left .5s, bottom .5s;
 }
 
@@ -1766,8 +1916,8 @@ h1 {
 
 .munch-puff {
     position: absolute;
-    left: 0;
-    bottom: 72px;
+    left: var(--encounter-x);
+    bottom: calc(var(--encounter-bottom) + 65px);
     transform: translateX(-50%);
     font-size: 18px;
     font-weight: 800;
@@ -1785,7 +1935,7 @@ h1 {
 
 .trail-confetti {
     position: absolute;
-    inset: -160px -25px 0;
+    inset: 0;
     pointer-events: none;
     overflow: hidden;
     z-index: 4;
@@ -1982,8 +2132,8 @@ h1 {
 }
 
 @keyframes milo-celebrate {
-    40% { transform: translateY(-18px) rotate(-6deg); }
-    65% { transform: translateY(-14px) rotate(6deg); }
+    40% { transform: translateY(var(--celebrate-rise, -18px)) rotate(-6deg); }
+    65% { transform: translateY(var(--celebrate-settle, -14px)) rotate(6deg); }
 }
 
 @keyframes prize-appear {

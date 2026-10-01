@@ -1,4 +1,7 @@
 import { generateProblem, checkAnswer, questionText, solutionText, advanceTrail, TRAIL_START, TRAIL_END } from './game.js';
+import { chooseAdventure, trailPoints, CREATURES } from './adventures.js';
+import { landscapeArt, routeArt, gearArt, rewardArt, creatureArt } from './adventure-art.js';
+import { SpeechPlayer } from './speech.js';
 
 const $ = (selector) => document.querySelector(selector);
 const answerInput = $('#answer');
@@ -16,33 +19,44 @@ let correctCount = 0;
 let questionNumber = 1;
 let wrongAttempts = 0;
 let revealingAnswer = false;
+let showingNumericSolution = false;
 let round = 0;
 let audioContext;
 const activeSounds = new Set();
-let finishSpeech;
 let trailPosition = TRAIL_START;
 let trailOutcome = null;
+let adventure = null;
+let encounter = null;
+let adventureNumber = 0;
 const treasures = [];
 const traveler = $('#traveler');
 const trailScene = $('#trail-scene');
 const journeyCard = $('#journey-card');
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const speechPlayer = new SpeechPlayer({
+    getContext: () => audioContext,
+    onStart: () => { $('#voice-notice').hidden = true; },
+    onError: () => {
+        $('#voice-notice').textContent = 'Voice couldn’t play. Choose “Hear the question” to try again.';
+        $('#voice-notice').hidden = false;
+    },
+});
 
 function setLocked(value) {
     locked = value;
     answerInput.readOnly = value;
-    document.querySelectorAll('.number-pad button, #mode-options button, #difficulty').forEach((control) => {
+    document.querySelectorAll('.number-pad button, #mode-options button, #display-options button, #difficulty').forEach((control) => {
         control.disabled = value;
     });
 }
 
-function sprite(id) {
+function sprite(id, kind = 'reward') {
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('viewBox', '0 0 120 120');
     svg.setAttribute('aria-hidden', 'true');
-    const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
-    use.setAttribute('href', `trail.svg#${id}`);
-    svg.append(use);
+    svg.dataset.item = id;
+    // Artwork comes only from the local, fixed catalogues.
+    svg.innerHTML = kind === 'creature' ? creatureArt(id) : rewardArt(id);
     return svg;
 }
 
@@ -52,15 +66,18 @@ function trailMessage(title, detail) {
 }
 
 function renderTrailPosition() {
-    traveler.style.setProperty('--progress', `${trailPosition / TRAIL_END * 100}%`);
-    trailScene.style.setProperty('--start-progress', `${TRAIL_START / TRAIL_END * 100}%`);
+    const points = trailPoints(adventure);
+    const point = points[trailPosition];
+    traveler.style.setProperty('--progress', `${point.x / 560 * 100}%`);
+    traveler.style.bottom = `${100 - point.y / 300 * 100}%`;
+    trailScene.style.setProperty('--prize-x', `${points[TRAIL_END].x / 560 * 100}%`);
+    trailScene.style.setProperty('--reward-x', `${(points[TRAIL_END].x - 80) / 560 * 100}%`);
+    trailScene.style.setProperty('--prize-bottom', `${100 - points[TRAIL_END].y / 300 * 100}%`);
+    trailScene.style.setProperty('--encounter-x', `${points[0].x / 560 * 100}%`);
+    trailScene.style.setProperty('--encounter-bottom', `${100 - points[0].y / 300 * 100}%`);
     trailScene.dataset.position = trailPosition;
-    trailScene.setAttribute('aria-label', `Milo is at step ${trailPosition} of ${TRAIL_END}. ${TRAIL_END - trailPosition} steps to the gift, ${trailPosition} steps to the creature.`);
-    $('#trail-markers').replaceChildren(...Array.from({ length: TRAIL_END + 1 }, (_, index) => {
-        const marker = document.createElement('span');
-        marker.className = `trail-marker${index === trailPosition ? ' current' : ''}${index === TRAIL_START ? ' start' : ''}`;
-        return marker;
-    }));
+    trailScene.setAttribute('aria-label', `${adventure.label}. Milo is at step ${trailPosition} of ${TRAIL_END}. ${TRAIL_END - trailPosition} steps to the gift, ${trailPosition} steps to the creature.`);
+    $('#adventure-path').innerHTML = routeArt(adventure, trailPosition);
 }
 
 function renderTreasures() {
@@ -87,7 +104,7 @@ function celebrate() {
 }
 
 async function moveMilo(correct) {
-    const step = advanceTrail(trailPosition, correct);
+    const step = advanceTrail(trailPosition, correct, Math.random, encounter);
     trailPosition = step.position;
     trailOutcome = step.outcome;
     traveler.classList.remove('walking', 'backward', 'celebrating', 'eaten');
@@ -98,8 +115,8 @@ async function moveMilo(correct) {
     trailScene.dataset.phase = 'moving';
     playSound(correct ? 'forward' : 'backward');
     renderTrailPosition();
-    trailMessage(correct ? 'A little step forward!' : 'Oops, a little step back!',
-        `${TRAIL_END - trailPosition} ${TRAIL_END - trailPosition === 1 ? 'step' : 'steps'} to a surprise. ${trailPosition} ${trailPosition === 1 ? 'step' : 'steps'} from Munchy Meadow.`);
+    trailMessage(correct ? `${adventure.activity.verb} a little farther!` : 'Oops, a little step back!',
+        `${TRAIL_END - trailPosition} ${TRAIL_END - trailPosition === 1 ? 'step' : 'steps'} to a surprise. ${trailPosition} ${trailPosition === 1 ? 'step' : 'steps'} to the hungry creature.`);
     await wait(750);
     traveler.classList.remove('walking', 'backward');
     if (!trailOutcome) {
@@ -109,7 +126,7 @@ async function moveMilo(correct) {
 
     const { type, item } = trailOutcome;
     journeyCard.classList.add('finished');
-    trailScene.setAttribute('aria-label', type === 'reward' ? `Milo reached the finish and received ${item.name}.` : `Milo reached Munchy Meadow and was gobbled up by ${item.name}.`);
+    trailScene.setAttribute('aria-label', type === 'reward' ? `Milo reached the finish and received ${item.name}.` : `Milo reached the snack stop and was gobbled up by ${item.name}.`);
     if (type === 'reward') {
         trailScene.classList.add('reward');
         trailScene.dataset.phase = 'reward';
@@ -121,7 +138,7 @@ async function moveMilo(correct) {
         playSound('reward');
         trailMessage(`Hooray! You found ${item.name}!`, 'Enjoy your prize. A new adventure is coming!');
         showFeedback('You made it! A surprise for Milo!');
-        $('#answer-hint').textContent = 'A new adventure starts after the celebration.';
+        if (!showingNumericSolution) $('#answer-hint').textContent = 'A new adventure starts after the celebration.';
         const celebrationAnimations = trailScene.getAnimations({ subtree: true })
             .filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity);
         await Promise.all([
@@ -130,7 +147,7 @@ async function moveMilo(correct) {
         ]);
         return;
     } else {
-        $('#trail-encounter').replaceChildren(sprite(item.id));
+        $('#trail-encounter').replaceChildren(sprite(item.id, 'creature'));
         journeyCard.classList.add('gobble');
         trailScene.classList.add('eating');
         trailScene.dataset.phase = 'eating';
@@ -148,18 +165,29 @@ async function moveMilo(correct) {
 }
 
 function resetTrail() {
+    adventure = chooseAdventure(adventure);
+    encounter = CREATURES[Math.floor(Math.random() * CREATURES.length)];
+    adventureNumber++;
     trailPosition = TRAIL_START;
     trailOutcome = null;
     traveler.classList.remove('walking', 'backward', 'celebrating', 'eaten');
     journeyCard.classList.remove('finished', 'gobble');
     trailScene.classList.remove('reward', 'eating');
     trailScene.dataset.phase = 'ready';
+    trailScene.dataset.adventure = adventure.id;
+    trailScene.dataset.motion = adventure.activity.id;
+    trailScene.dataset.world = adventure.world.id;
+    $('#adventure-landscape').innerHTML = landscapeArt(adventure);
+    $('#milo-gear').innerHTML = gearArt(adventure.activity.id);
+    $('#adventure-label').textContent = `ADVENTURE ${String(adventureNumber).padStart(2, '0')} · ${adventure.world.label.toUpperCase()}`;
+    $('#journey-title').textContent = adventure.activity.label;
+    $('#adventure-description').textContent = adventure.activity.detail;
     $('#trail-prize').replaceChildren(sprite('gift'));
-    $('#trail-encounter').replaceChildren(sprite('monster'));
+    $('#trail-encounter').replaceChildren(sprite(encounter.id, 'creature'));
     $('#trail-confetti').replaceChildren();
     $('#journey-again').hidden = true;
     $('#answer-hint').textContent = 'Type your answer or tap the numbers below.';
-    trailMessage(`A surprise is ${TRAIL_END - TRAIL_START} steps away!`, `${TRAIL_START} steps back to Munchy Meadow. Keep Milo moving toward the gift.`);
+    trailMessage(`A surprise is ${TRAIL_END - TRAIL_START} steps away!`, `${TRAIL_START} steps back to the hungry creature. Let’s ${adventure.activity.verb.toLowerCase()}!`);
     // Start the next adventure at its actual origin before accepting another answer.
     traveler.style.transition = 'none';
     renderTrailPosition();
@@ -168,36 +196,17 @@ function resetTrail() {
 }
 
 function stopSpeech() {
-    finishSpeech?.();
-    window.speechSynthesis?.cancel();
+    speechPlayer.stop();
 }
 
 function speak(text) {
     stopSpeech();
-    if (!soundEnabled || !started || helpDialog.open || !('speechSynthesis' in window)) return Promise.resolve();
-    return new Promise((resolve) => {
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'en-US';
-        utterance.rate = 0.85;
-        utterance.pitch = 1.08;
-        const voices = window.speechSynthesis.getVoices();
-        utterance.voice = voices.find((voice) => voice.lang === 'en-US' && voice.localService)
-            ?? voices.find((voice) => voice.lang.startsWith('en')) ?? null;
-        let finished = false;
-        const finish = () => {
-            if (finished) return;
-            finished = true;
-            clearTimeout(timeout);
-            if (finishSpeech === finish) finishSpeech = undefined;
-            resolve();
-        };
-        // Some speech engines omit completion events when no voice is available.
-        const timeout = setTimeout(() => { finish(); window.speechSynthesis.cancel(); }, 6500);
-        finishSpeech = finish;
-        utterance.onend = finish;
-        utterance.onerror = finish;
-        window.speechSynthesis.speak(utterance);
-    });
+    if (!soundEnabled || !started || helpDialog.open) return Promise.resolve();
+    return speechPlayer.play(text);
+}
+
+function prepareSpeech() {
+    if (soundEnabled) speechPlayer.prepare([questionText(problem), solutionText(problem), questionText(problem, true)]);
 }
 
 function unlockAudio() {
@@ -245,12 +254,17 @@ function playSound(effect) {
         case 'forward':
             // Four soft, springy footsteps follow the walking animation.
             [260, 330, 290, 370].forEach((frequency, index) => {
-                tone(frequency, .08 + index * .18, .07, .045, 'triangle', frequency * .7);
+                const watery = ['swim', 'boat'].includes(adventure.activity.id);
+                const airy = adventure.activity.id === 'fly';
+                const pitch = frequency * (watery ? 1.6 : airy ? 2 : 1);
+                tone(pitch, .08 + index * .18, watery ? .12 : .07, .045, watery || airy ? 'sine' : 'triangle', pitch * .7);
             });
             break;
         case 'backward':
             [330, 290, 250, 210].forEach((frequency, index) => {
-                tone(frequency, .08 + index * .18, .09, .045, 'triangle', frequency * .6);
+                const watery = ['swim', 'boat'].includes(adventure.activity.id);
+                const pitch = frequency * (watery ? 1.6 : 1);
+                tone(pitch, .08 + index * .18, .09, .045, watery ? 'sine' : 'triangle', pitch * .6);
             });
             break;
         case 'reward':
@@ -282,10 +296,10 @@ function playSound(effect) {
     }
 }
 
-function renderOperand(element, value) {
+function renderOperand(element, value, presentation = display) {
     element.replaceChildren();
-    element.setAttribute('aria-label', `${value}${display === 'dots' ? ' dots' : ''}`);
-    if (display === 'numbers' || value === 0) {
+    element.setAttribute('aria-label', `${value}${presentation === 'dots' ? ' dots' : ''}`);
+    if (presentation === 'numbers' || value === 0) {
         element.textContent = value;
         return;
     }
@@ -304,15 +318,51 @@ function renderOperand(element, value) {
 }
 
 function renderProblem() {
-    renderOperand($('#operand-first'), problem.a);
-    renderOperand($('#operand-second'), problem.b);
+    const presentation = showingNumericSolution ? 'numbers' : display;
+    renderOperand($('#operand-first'), problem.a, presentation);
+    renderOperand($('#operand-second'), problem.b, presentation);
     const addition = problem.operation === 'addition';
     $('#operator').textContent = addition ? '+' : '−';
     $('#operator').setAttribute('aria-label', addition ? 'plus' : 'minus');
-    $('.equation').setAttribute('aria-label', questionText(problem));
+    $('.equation').setAttribute('aria-label', showingNumericSolution ? solutionText(problem) : questionText(problem));
     $('#question-heading').textContent = addition ? 'How many altogether?' : 'How many are left?';
     $('#practice-title').textContent = mode === 'mixed' ? 'A little bit of both' : `A little ${mode}`;
     $('#question-number').textContent = String(questionNumber).padStart(2, '0');
+}
+
+async function flipToNumericSolution() {
+    const equation = $('.equation');
+    const animate = equation.animate && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let flipOut;
+    if (animate) {
+        flipOut = equation.animate([
+            { transform: 'perspective(900px) rotateX(0deg)', opacity: 1 },
+            { transform: 'perspective(900px) rotateX(-90deg)', opacity: .35 },
+        ], { duration: 220, easing: 'ease-in', fill: 'forwards' });
+        await flipOut.finished.catch(() => { });
+    }
+    // Reveal the numeric face without changing the selected mode for the next question.
+    showingNumericSolution = true;
+    renderProblem();
+    if (animate) {
+        const flipIn = equation.animate([
+            { transform: 'perspective(900px) rotateX(90deg)', opacity: .35 },
+            { transform: 'perspective(900px) rotateX(0deg)', opacity: 1 },
+        ], { duration: 220, easing: 'ease-out' });
+        flipOut.cancel();
+        await flipIn.finished.catch(() => { });
+    }
+}
+
+async function reviewDotsSolution(currentRound) {
+    $('#answer-hint').textContent = 'Let’s see it as numbers.';
+    await flipToNumericSolution();
+    if (round !== currentRound) return;
+    $('#answer-hint').textContent = soundEnabled ? 'Listen to the number sentence.' : 'Read the number sentence.';
+    await speak(solutionText(problem));
+    if (round !== currentRound) return;
+    $('#answer-hint').textContent = 'Next question in 2 seconds.';
+    await wait(2000);
 }
 
 function showFeedback(text) {
@@ -338,6 +388,7 @@ function nextProblem() {
     stopSpeech();
     wrongAttempts = 0;
     revealingAnswer = false;
+    showingNumericSolution = false;
     setLocked(false);
     answerInput.value = '';
     card.classList.remove('correct', 'wrong', 'revealed');
@@ -345,6 +396,7 @@ function nextProblem() {
     $('#answer-hint').textContent = 'Type your answer or tap the numbers below.';
     problem = generateProblem(mode, difficulty, problem);
     renderProblem();
+    prepareSpeech();
     if (started) {
         showFeedback('You’ve got this. Take your time!');
         speak(questionText(problem));
@@ -366,12 +418,12 @@ async function evaluate(submitted = false) {
         $('#encouragement').textContent = correctCount % 5 === 0 ? 'Look at you grow. Keep it up!' : 'One little win. One bigger smile.';
         showFeedback('That’s right! Nicely done.');
         playSound('correct');
-        const answerSpeech = speak(questionText(problem, true));
-        await Promise.all([
-            wait(1600),
-            movement,
-        ]);
-        if (!trailOutcome) await answerSpeech;
+        if (display === 'dots') {
+            await Promise.all([movement, reviewDotsSolution(currentRound)]);
+        } else {
+            const answerSpeech = speak(questionText(problem, true));
+            await Promise.all([wait(1600), movement, answerSpeech]);
+        }
         if (round !== currentRound) return;
         if (trailOutcome?.type === 'reward') resetTrail();
         questionNumber++;
@@ -425,7 +477,7 @@ function handleKey(key) {
 $('#start-button').addEventListener('click', () => { startGame(); focusAnswer(); });
 $('#listen-button').addEventListener('click', () => {
     startGame(false);
-    speak(revealingAnswer ? solutionText(problem) : questionText(problem, locked && card.classList.contains('correct')));
+    speak(revealingAnswer || showingNumericSolution ? solutionText(problem) : questionText(problem, locked && card.classList.contains('correct')));
 });
 answerInput.addEventListener('input', () => {
     startGame(false);
@@ -486,7 +538,7 @@ $('#journey-again').addEventListener('click', () => {
 });
 $('#display-options').addEventListener('click', (event) => {
     const value = event.target.closest('[data-display]')?.dataset.display;
-    if (!value || value === display) return;
+    if (locked || !value || value === display) return;
     display = value;
     updateButtons('#display-options', 'display', display);
     renderProblem();
@@ -499,9 +551,10 @@ $('#sound-toggle').addEventListener('click', () => {
     $('#sound-toggle use').setAttribute('href', soundEnabled ? '#i-sound' : '#i-mute');
     if (soundEnabled) {
         unlockAudio();
-        if (started) speak(revealingAnswer ? solutionText(problem) : questionText(problem, locked && card.classList.contains('correct')));
+        if (started) speak(revealingAnswer || showingNumericSolution ? solutionText(problem) : questionText(problem, locked && card.classList.contains('correct')));
     } else {
         stopSpeech();
+        $('#voice-notice').hidden = true;
         stopSounds();
         audioContext?.suspend().catch(() => { });
     }
@@ -525,3 +578,4 @@ helpDialog.addEventListener('close', () => {
 window.addEventListener('pagehide', () => { stopSpeech(); stopSounds(); });
 renderProblem();
 resetTrail();
+prepareSpeech();

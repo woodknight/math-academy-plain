@@ -106,6 +106,7 @@
                         aria-label="Read the question aloud"><svg class="icon">
                             <use href="#i-sound" />
                         </svg>Hear the question</button>
+                    <p class="voice-notice" id="voice-notice" role="status" hidden></p>
                 </div>
                 <div class="equation" role="group" aria-label="Math question">
                     <div class="operand operand-first" id="operand-first" aria-label="3"></div>
@@ -142,31 +143,17 @@
             </div>
             <section class="journey-card" id="journey-card" aria-labelledby="journey-title">
                 <div class="journey-heading">
-                    <span class="eyebrow">A SMALL SUM. A BIG ADVENTURE.</span>
-                    <h2 id="journey-title">Meet Milo. Let’s go places.</h2>
-                    <p>One answer, one little step.</p>
+                    <span class="eyebrow" id="adventure-label">A NEW ADVENTURE EVERY ROUND</span>
+                    <h2 id="journey-title">Milo’s little adventures</h2>
+                    <p id="adventure-description">One answer, one little step.</p><span class="adventure-variety">60 adventures · 60 prizes · 60 hungry friends</span>
                 </div>
                 <div class="trail-scene" id="trail-scene" aria-label="Milo’s adventure trail">
-                    <svg class="trail-landscape" viewBox="0 0 560 300" preserveAspectRatio="none" aria-hidden="true">
-                        <circle cx="445" cy="44" r="24" fill="#f7df9d"/>
-                        <g fill="#fffdf4"><path d="M69 55c-13-1-13-19 0-19 4-17 28-19 35-3 20-6 28 21 11 22Z"/><path d="M303 43c-9-1-10-13 0-14 3-13 21-14 26-3 14-4 20 16 7 17Z"/></g>
-                        <path d="M0 173C89 96 170 132 244 169c103-82 217-93 316-9v140H0Z" fill="#e0e9cf"/>
-                        <path d="M0 208c116-65 192-12 282-26 116-32 193-12 278 21v97H0Z" fill="#ccdcb5"/>
-                        <path d="M0 261c144-31 332 33 560-11v50H0Z" fill="#bed0a6"/>
-                        <g stroke="#819779" stroke-width="3" stroke-linecap="round"><path d="M43 173v-37m475 41v-46"/></g>
-                        <g fill="#a8c18b"><path d="M21 145c-14-32 7-64 24-50 25-17 44 22 28 47-13 20-34 21-52 3Z"/><path d="M494 147c-14-29 7-62 24-50 25-17 41 20 28 45-13 20-34 21-52 5Z"/></g>
-                        <g fill="none" stroke="#849b6d" stroke-width="2" stroke-linecap="round"><path d="m140 265 4-8 4 8m232 9 4-8 4 8M86 236v-9m396 27v-9m-285-19v-9"/></g>
-                        <g fill="#fcf2cf"><circle cx="86" cy="223" r="5"/><circle cx="482" cy="241" r="5"/></g>
-                        <circle cx="197" cy="213" r="5" fill="#eaa99a"/>
-                    </svg>
-                    <span class="scene-label scene-label-left">MUNCHY MEADOW</span>
-                    <span class="scene-label scene-label-right">SURPRISE SUMMIT</span>
+                    <svg class="trail-landscape" id="adventure-landscape" viewBox="0 0 560 300" preserveAspectRatio="none" aria-hidden="true"></svg>
                     <div class="trail-rail">
-                        <div class="trail-road" aria-hidden="true"></div>
-                        <div class="trail-markers" id="trail-markers" aria-hidden="true"></div>
+                        <svg class="adventure-path" id="adventure-path" viewBox="0 0 560 300" preserveAspectRatio="none" aria-hidden="true"></svg>
                         <div class="trail-encounter" id="trail-encounter" aria-hidden="true"><svg viewBox="0 0 120 120"><use href="trail.svg#monster"/></svg></div>
                         <div class="trail-prize" id="trail-prize" aria-hidden="true"><svg viewBox="0 0 120 120"><use href="trail.svg#gift"/></svg></div>
-                        <div class="traveler" id="traveler" style="--progress: 23.076923%" aria-hidden="true">
+                        <div class="traveler" id="traveler" style="--progress: 33.928571%" aria-hidden="true">
                             <span class="traveler-shadow"></span>
                             <div class="traveler-motion">
                                 <svg class="milo" viewBox="0 0 100 130" fill="none" stroke="#544a46" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -188,18 +175,18 @@
                                     <path d="M30 49h5m30 0h5" stroke="#eaa596" stroke-width="4"/>
                                     <path d="M43 86h14" stroke="#ce856e"/>
                                 </svg>
+                                <svg class="milo-gear" id="milo-gear" viewBox="0 0 100 130" aria-hidden="true"></svg>
                             </div>
                             <span class="milo-name">MILO</span>
                         </div>
                         <span class="munch-puff" aria-hidden="true">nom!</span>
                         <div class="trail-confetti" id="trail-confetti" aria-hidden="true"></div>
-                        <span class="trail-start-label">START HERE</span>
                     </div>
                 </div>
                 <div class="trail-rules"><span class="rule-wrong">← Wrong answer <strong>−1</strong></span><span class="rule-right">Right answer <strong>+1</strong> →</span></div>
                 <div class="journey-message" id="journey-message" role="status" aria-live="polite" aria-atomic="true">
                     <span class="journey-message-icon" aria-hidden="true"><svg class="icon"><use href="#i-sprout"/></svg></span>
-                    <div><h3 id="journey-status">A surprise is 10 steps away!</h3><p id="journey-detail">3 steps back to Munchy Meadow. Keep Milo moving toward the gift.</p></div>
+                    <div><h3 id="journey-status">A surprise is 5 steps away!</h3><p id="journey-detail">2 steps back to the hungry creature. Let’s go!</p></div>
                     <button class="journey-again" id="journey-again" hidden>Let’s go again <svg class="icon"><use href="#i-arrow"/></svg></button>
                 </div>
                 <div class="treasure-shelf"><div class="treasure-heading"><span>YOUR LITTLE TREASURES</span><span id="treasure-count">0 collected</span></div><div id="treasure-items"><span class="treasure-empty">Good things are waiting at the end of the trail.</span></div></div>
@@ -222,9 +209,10 @@
             <li>Count the dots, or switch to numbers.</li>
             <li>Type your answer or use the number buttons. Correct answers are checked automatically. Press Enter to
                 check an unfinished answer.</li>
+            <li>In Dots mode, a correct answer flips the dot cards into a number sentence. Listen to it once, then take 2 seconds to look before the next dot question appears.</li>
             <li>A right answer earns a happy little win! If it’s not quite right, listen to the question again and give it another try. After 3 wrong attempts on the same question, see the correct answer for 3 seconds before the next question appears.</li>
-            <li>Milo starts 10 steps from the gift and 3 steps from the creature. A right answer moves him one step toward a random gift; a wrong answer moves him one step toward a hungry creature.</li>
-            <li>Reach Surprise Summit to collect a cake, car, house, rocket, or teddy bear. After the celebration, Milo automatically starts a new adventure. Reach Munchy Meadow and a silly creature gobbles Milo up! Choose “Let’s go again” for a fresh adventure.</li>
+            <li>Milo starts 5 steps from the gift and 2 steps from the creature. Each adventure picks a new world and activity: climb stairs, scale walls, swim, ski, fly, and more. A right answer moves him one step toward a random gift; a wrong answer moves him one step toward a hungry creature.</li>
+            <li>Reach the finish to collect one of 60 surprise prizes. After the celebration, Milo automatically starts a new adventure. Go back to the snack stop and one of 60 silly creatures gobbles Milo up! Choose “Let’s go again” for a fresh adventure.</li>
         </ol>
         <p>Choose <strong>Let’s play</strong> to turn on spoken questions. Listen for Milo’s little footsteps, a cheerful prize fanfare, and a silly creature gulp! The sound button turns voices and all sound effects on or off. There’s no timer, so take your time.</p><button id="help-done" class="start-button">Got it<svg
                 class="icon">

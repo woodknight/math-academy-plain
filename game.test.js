@@ -65,7 +65,7 @@ test('spoken questions and answers use clear operation words', () => {
 
 test('mixed answers move one step each and can reverse direction without ending early', () => {
     let position = TRAIL_START;
-    for (const [correct, expected] of [[true, 4], [false, 3], [false, 2], [true, 3]]) {
+    for (const [correct, expected] of [[true, 3], [false, 2], [false, 1], [true, 2]]) {
         const step = advanceTrail(position, correct, () => { throw new Error('No draw before an endpoint'); });
         assert.equal(step.position, expected);
         assert.equal(step.outcome, null);
@@ -73,14 +73,14 @@ test('mixed answers move one step each and can reverse direction without ending 
     }
 });
 
-test('ten net steps forward earn one random gift; three steps back trigger a creature', () => {
-    assert.equal(TRAIL_END - TRAIL_START, 10);
-    assert.equal(TRAIL_START, 3);
+test('five net steps forward earn one random gift; two steps back trigger a creature', () => {
+    assert.equal(TRAIL_END - TRAIL_START, 5);
+    assert.equal(TRAIL_START, 2);
     for (const correct of [true, false]) {
         let position = TRAIL_START;
         let draws = 0;
         let step;
-        const distance = correct ? 10 : 3;
+        const distance = correct ? 5 : 2;
         for (let index = 0; index < distance; index++) {
             step = advanceTrail(position, correct, () => { draws++; return .5; });
             position = step.position;
@@ -97,6 +97,12 @@ test('ten net steps forward earn one random gift; three steps back trigger a cre
             assert.deepEqual(advanceTrail(position, answer, () => { throw new Error('Duplicate draw'); }), { position, outcome: null });
         }
     }
+});
+
+test('the creature waiting in this adventure is the one that gobbles Milo', () => {
+    const encounter = CREATURES[12];
+    const result = advanceTrail(1, false, () => { throw new Error('Do not draw a different creature'); }, encounter);
+    assert.equal(result.outcome.item, encounter);
 });
 
 test('every reward and creature can be drawn at its endpoint', () => {
