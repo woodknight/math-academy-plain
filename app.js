@@ -1,4 +1,4 @@
-import { generateProblem, checkAnswer, questionText } from './game.js';
+import { generateProblem, checkAnswer, questionText, solutionText, advanceTrail, TRAIL_START, TRAIL_END } from './game.js';
 
 const $ = (selector) => document.querySelector(selector);
 const answerInput = $('#answer');
@@ -14,10 +14,147 @@ let soundEnabled = true;
 let locked = false;
 let correctCount = 0;
 let questionNumber = 1;
+let wrongAttempts = 0;
+let revealingAnswer = false;
 let round = 0;
-let wrongTimer;
 let audioContext;
+const activeSounds = new Set();
 let finishSpeech;
+let trailPosition = TRAIL_START;
+let trailOutcome = null;
+const treasures = [];
+const traveler = $('#traveler');
+const trailScene = $('#trail-scene');
+const journeyCard = $('#journey-card');
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function setLocked(value) {
+    locked = value;
+    answerInput.readOnly = value;
+    document.querySelectorAll('.number-pad button, #mode-options button, #difficulty').forEach((control) => {
+        control.disabled = value;
+    });
+}
+
+function sprite(id) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 120 120');
+    svg.setAttribute('aria-hidden', 'true');
+    const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+    use.setAttribute('href', `trail.svg#${id}`);
+    svg.append(use);
+    return svg;
+}
+
+function trailMessage(title, detail) {
+    $('#journey-status').textContent = title;
+    $('#journey-detail').textContent = detail;
+}
+
+function renderTrailPosition() {
+    traveler.style.setProperty('--progress', `${trailPosition / TRAIL_END * 100}%`);
+    trailScene.style.setProperty('--start-progress', `${TRAIL_START / TRAIL_END * 100}%`);
+    trailScene.dataset.position = trailPosition;
+    trailScene.setAttribute('aria-label', `Milo is at step ${trailPosition} of ${TRAIL_END}. ${TRAIL_END - trailPosition} steps to the gift, ${trailPosition} steps to the creature.`);
+    $('#trail-markers').replaceChildren(...Array.from({ length: TRAIL_END + 1 }, (_, index) => {
+        const marker = document.createElement('span');
+        marker.className = `trail-marker${index === trailPosition ? ' current' : ''}${index === TRAIL_START ? ' start' : ''}`;
+        return marker;
+    }));
+}
+
+function renderTreasures() {
+    $('#treasure-count').textContent = `${treasures.length} collected`;
+    $('#treasure-items').replaceChildren(...treasures.slice(-3).map((item) => {
+        const chip = document.createElement('span');
+        chip.className = 'treasure-chip';
+        const label = document.createElement('span');
+        label.textContent = item.label;
+        chip.append(sprite(item.id), label);
+        return chip;
+    }));
+}
+
+function celebrate() {
+    const colors = ['#e9a18c', '#a4bd87', '#e5c879', '#b9acd4'];
+    $('#trail-confetti').replaceChildren(...Array.from({ length: 28 }, (_, index) => {
+        const piece = document.createElement('i');
+        piece.style.setProperty('--x', `${index / 28 * 100}%`);
+        piece.style.setProperty('--color', colors[index % colors.length]);
+        piece.style.setProperty('--delay', `${index % 7 * .06}s`);
+        return piece;
+    }));
+}
+
+async function moveMilo(correct) {
+    const step = advanceTrail(trailPosition, correct);
+    trailPosition = step.position;
+    trailOutcome = step.outcome;
+    traveler.classList.remove('walking', 'backward', 'celebrating', 'eaten');
+    // Restart the gait even when successive answers move in the same direction.
+    void traveler.offsetWidth;
+    traveler.classList.add('walking');
+    traveler.classList.toggle('backward', !correct);
+    trailScene.dataset.phase = 'moving';
+    playSound(correct ? 'forward' : 'backward');
+    renderTrailPosition();
+    trailMessage(correct ? 'A little step forward!' : 'Oops, a little step back!',
+        `${TRAIL_END - trailPosition} ${TRAIL_END - trailPosition === 1 ? 'step' : 'steps'} to a surprise. ${trailPosition} ${trailPosition === 1 ? 'step' : 'steps'} from Munchy Meadow.`);
+    await wait(750);
+    traveler.classList.remove('walking', 'backward');
+    if (!trailOutcome) {
+        trailScene.dataset.phase = 'ready';
+        return;
+    }
+
+    const { type, item } = trailOutcome;
+    journeyCard.classList.add('finished');
+    trailScene.setAttribute('aria-label', type === 'reward' ? `Milo reached the finish and received ${item.name}.` : `Milo reached Munchy Meadow and was gobbled up by ${item.name}.`);
+    if (type === 'reward') {
+        trailScene.classList.add('reward');
+        trailScene.dataset.phase = 'reward';
+        $('#trail-prize').replaceChildren(sprite(item.id));
+        traveler.classList.add('celebrating');
+        treasures.push(item);
+        renderTreasures();
+        celebrate();
+        playSound('reward');
+        trailMessage(`Hooray! You found ${item.name}!`, 'A lovely little prize for your lovely little brain.');
+        showFeedback('You made it! A surprise for Milo!');
+        await wait(900);
+    } else {
+        $('#trail-encounter').replaceChildren(sprite(item.id));
+        journeyCard.classList.add('gobble');
+        trailScene.classList.add('eating');
+        trailScene.dataset.phase = 'eating';
+        traveler.classList.add('eaten');
+        playSound('punishment');
+        trailMessage(`Nom nom! ${item.label} gobbled Milo!`, 'A silly little tumble. Milo will be back for another adventure.');
+        if (!revealingAnswer) showFeedback('Gulp! Let’s give Milo a fresh start.');
+        await wait(1100);
+        trailScene.dataset.phase = 'eaten';
+    }
+    if (!revealingAnswer) {
+        $('#journey-again').hidden = false;
+        $('#answer-hint').textContent = 'Choose “Let’s go again” to start a new adventure.';
+    }
+}
+
+function resetTrail() {
+    trailPosition = TRAIL_START;
+    trailOutcome = null;
+    traveler.classList.remove('walking', 'backward', 'celebrating', 'eaten');
+    journeyCard.classList.remove('finished', 'gobble');
+    trailScene.classList.remove('reward', 'eating');
+    trailScene.dataset.phase = 'ready';
+    $('#trail-prize').replaceChildren(sprite('gift'));
+    $('#trail-encounter').replaceChildren(sprite('monster'));
+    $('#trail-confetti').replaceChildren();
+    $('#journey-again').hidden = true;
+    $('#answer-hint').textContent = 'Type your answer or tap the numbers below.';
+    trailMessage(`A surprise is ${TRAIL_END - TRAIL_START} steps away!`, `${TRAIL_START} steps back to Munchy Meadow. Keep Milo moving toward the gift.`);
+    renderTrailPosition();
+}
 
 function stopSpeech() {
     finishSpeech?.();
@@ -60,27 +197,78 @@ function unlockAudio() {
     if (audioContext.state === 'suspended') audioContext.resume().catch(() => { });
 }
 
-function playSound(correct) {
+function stopSounds() {
+    for (const oscillator of activeSounds) {
+        oscillator.stop();
+    }
+    activeSounds.clear();
+}
+
+function playSound(effect) {
     if (!soundEnabled || !audioContext) return;
     const now = audioContext.currentTime;
-    const notes = correct ? [523.25, 659.25, 783.99] : [145, 110];
-    notes.forEach((frequency, index) => {
+    const tone = (frequency, delay, duration, volume, type = 'sine', endFrequency = frequency) => {
         const oscillator = audioContext.createOscillator();
         const gain = audioContext.createGain();
-        const start = now + index * (correct ? 0.11 : 0.14);
-        const duration = correct ? 0.25 : 0.17;
-        oscillator.type = correct ? 'sine' : 'triangle';
+        const start = now + delay;
+        oscillator.type = type;
         oscillator.frequency.setValueAtTime(frequency, start);
-        if (!correct) oscillator.frequency.exponentialRampToValueAtTime(frequency * 0.65, start + duration);
+        oscillator.frequency.exponentialRampToValueAtTime(endFrequency, start + duration);
         gain.gain.setValueAtTime(0, start);
-        gain.gain.linearRampToValueAtTime(correct ? 0.13 : 0.09, start + 0.015);
+        gain.gain.linearRampToValueAtTime(volume, start + .01);
         gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
+        gain.gain.setValueAtTime(0, start + duration + .01);
         oscillator.connect(gain);
         gain.connect(audioContext.destination);
+        activeSounds.add(oscillator);
         oscillator.start(start);
-        oscillator.stop(start + duration + 0.02);
-        oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
-    });
+        oscillator.stop(start + duration + .02);
+        oscillator.onended = () => {
+            activeSounds.delete(oscillator);
+            oscillator.disconnect();
+            gain.disconnect();
+        };
+    };
+
+    switch (effect) {
+        case 'forward':
+            // Four soft, springy footsteps follow the walking animation.
+            [260, 330, 290, 370].forEach((frequency, index) => {
+                tone(frequency, .08 + index * .18, .07, .045, 'triangle', frequency * .7);
+            });
+            break;
+        case 'backward':
+            [330, 290, 250, 210].forEach((frequency, index) => {
+                tone(frequency, .08 + index * .18, .09, .045, 'triangle', frequency * .6);
+            });
+            break;
+        case 'reward':
+            // A bright fanfare and a final sparkle when the mystery gift opens.
+            [523.25, 659.25, 783.99, 1046.5].forEach((frequency, index) => {
+                tone(frequency, index * .13, .3, .1);
+            });
+            [1318.51, 1567.98, 2093].forEach((frequency, index) => {
+                tone(frequency, .6 + index * .08, .22, .045);
+            });
+            break;
+        case 'punishment':
+            // Cartoon chomps and a bouncy gulp, timed to the gobble and puff.
+            [240, 220, 200].forEach((frequency, index) => {
+                tone(frequency, .04 + index * .23, .15, .09, 'triangle', 80);
+            });
+            tone(130, .72, .28, .075, 'sine', 290);
+            break;
+        case 'correct':
+            [523.25, 659.25, 783.99].forEach((frequency, index) => {
+                tone(frequency, index * .11, .25, .09);
+            });
+            break;
+        case 'wrong':
+            [145, 110].forEach((frequency, index) => {
+                tone(frequency, index * .14, .17, .065, 'triangle', frequency * .65);
+            });
+            break;
+    }
 }
 
 function renderOperand(element, value) {
@@ -136,12 +324,14 @@ function startGame(readQuestion = true) {
 
 function nextProblem() {
     round++;
-    clearTimeout(wrongTimer);
     stopSpeech();
-    locked = false;
-    answerInput.readOnly = false;
+    wrongAttempts = 0;
+    revealingAnswer = false;
+    setLocked(false);
     answerInput.value = '';
-    card.classList.remove('correct', 'wrong');
+    card.classList.remove('correct', 'wrong', 'revealed');
+    $('.answer-caption').textContent = 'YOUR ANSWER';
+    $('#answer-hint').textContent = 'Type your answer or tap the numbers below.';
     problem = generateProblem(mode, difficulty, problem);
     renderProblem();
     if (started) {
@@ -154,35 +344,54 @@ async function evaluate(submitted = false) {
     if (locked || !answerInput.value) return;
     const result = checkAnswer(answerInput.value, problem.answer, submitted);
     if (result === 'pending') return;
-    locked = true;
-    answerInput.readOnly = true;
+    setLocked(true);
     stopSpeech();
     const currentRound = round;
+    const movement = moveMilo(result === 'correct');
     if (result === 'correct') {
         card.classList.add('correct');
         correctCount++;
         $('#correct-count').textContent = correctCount;
         $('#encouragement').textContent = correctCount % 5 === 0 ? 'Look at you grow. Keep it up!' : 'One little win. One bigger smile.';
         showFeedback('That’s right! Nicely done.');
-        playSound(true);
+        playSound('correct');
         await Promise.all([
             speak(questionText(problem, true)),
-            new Promise((resolve) => setTimeout(resolve, 1600)),
+            wait(1600),
+            movement,
         ]);
-        if (round !== currentRound) return;
+        if (round !== currentRound || trailOutcome) return;
         questionNumber++;
         nextProblem();
     } else {
         card.classList.add('wrong');
         showFeedback('Not quite. Let’s try that again!');
-        playSound(false);
-        wrongTimer = setTimeout(() => {
-            if (round !== currentRound) return;
-            answerInput.value = '';
-            answerInput.readOnly = false;
-            locked = false;
+        playSound('wrong');
+        wrongAttempts++;
+        if (wrongAttempts >= 3) {
+            revealingAnswer = true;
             card.classList.remove('wrong');
-        }, 650);
+            card.classList.add('revealed');
+            answerInput.value = String(problem.answer);
+            $('.answer-caption').textContent = 'CORRECT ANSWER';
+            showFeedback(`The correct answer is ${problem.answer}. Let’s learn from it!`);
+            $('#answer-hint').textContent = 'Next question in 3 seconds.';
+            speak(solutionText(problem));
+            await Promise.all([movement, wait(3000)]);
+            if (round !== currentRound) return;
+            if (trailOutcome) resetTrail();
+            questionNumber++;
+            nextProblem();
+            focusAnswer();
+            return;
+        }
+        await Promise.all([movement, wait(800)]);
+        if (round !== currentRound) return;
+        speak(questionText(problem));
+        if (trailOutcome) return;
+        answerInput.value = '';
+        setLocked(false);
+        card.classList.remove('wrong');
     }
 }
 
@@ -202,7 +411,7 @@ function handleKey(key) {
 $('#start-button').addEventListener('click', () => { startGame(); focusAnswer(); });
 $('#listen-button').addEventListener('click', () => {
     startGame(false);
-    speak(questionText(problem, locked && card.classList.contains('correct')));
+    speak(revealingAnswer ? solutionText(problem) : questionText(problem, locked && card.classList.contains('correct')));
 });
 answerInput.addEventListener('input', () => {
     startGame(false);
@@ -237,16 +446,35 @@ function updateButtons(group, attribute, selected) {
 
 $('#mode-options').addEventListener('click', (event) => {
     const value = event.target.closest('[data-mode]')?.dataset.mode;
-    if (!value || value === mode) return;
+    if (locked || !value || value === mode) return;
     mode = value;
     updateButtons('#mode-options', 'mode', mode);
     unlockAudio();
     nextProblem();
 });
 $('#difficulty').addEventListener('change', (event) => {
+    if (locked) return;
     difficulty = event.target.value;
     unlockAudio();
     nextProblem();
+});
+$('#journey-again').addEventListener('click', () => {
+    if (revealingAnswer) return;
+    const solved = card.classList.contains('correct');
+    resetTrail();
+    if (solved) {
+        questionNumber++;
+        nextProblem();
+    } else {
+        round++;
+        stopSpeech();
+        answerInput.value = '';
+        card.classList.remove('wrong');
+        setLocked(false);
+        showFeedback('A fresh start. You’ve got this!');
+        speak(questionText(problem));
+    }
+    focusAnswer();
 });
 $('#display-options').addEventListener('click', (event) => {
     const value = event.target.closest('[data-display]')?.dataset.display;
@@ -263,9 +491,10 @@ $('#sound-toggle').addEventListener('click', () => {
     $('#sound-toggle use').setAttribute('href', soundEnabled ? '#i-sound' : '#i-mute');
     if (soundEnabled) {
         unlockAudio();
-        if (started) speak(questionText(problem, locked && card.classList.contains('correct')));
+        if (started) speak(revealingAnswer ? solutionText(problem) : questionText(problem, locked && card.classList.contains('correct')));
     } else {
         stopSpeech();
+        stopSounds();
         audioContext?.suspend().catch(() => { });
     }
 });
@@ -285,5 +514,6 @@ helpDialog.addEventListener('click', (event) => {
 helpDialog.addEventListener('close', () => {
     if (started && !locked) speak(questionText(problem));
 });
-window.addEventListener('pagehide', stopSpeech);
+window.addEventListener('pagehide', () => { stopSpeech(); stopSounds(); });
 renderProblem();
+resetTrail();

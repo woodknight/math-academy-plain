@@ -670,6 +670,17 @@ h1 span {
     color: #b2755c
 }
 
+.game-card.revealed .answer-wrap input {
+    border: 2px solid #d6bd7d;
+    background: #fff8e5;
+    color: #897044;
+}
+
+.game-card.revealed .answer-caption,
+.game-card.revealed #feedback {
+    color: #897044;
+}
+
 #answer-hint {
     font-size: 11px;
     color: #9a9c93;
@@ -1359,5 +1370,650 @@ dialog li {
     *::after {
         animation: none !important;
         transition: none !important
+    }
+}
+
+/* The practice desk and the illustrated adventure share a PC-sized canvas. */
+body {
+    min-width: 1120px;
+}
+
+main {
+    max-width: 1360px;
+    padding: 0 36px;
+}
+
+.site-header {
+    height: 74px;
+}
+
+.intro {
+    padding: 17px 0 27px;
+}
+
+h1 {
+    font-size: 40px;
+    margin-top: 10px;
+    margin-bottom: 8px;
+}
+
+.settings {
+    margin-bottom: 20px;
+}
+
+.play-layout {
+    display: grid;
+    grid-template-columns: minmax(540px, 1.08fr) minmax(450px, 1fr);
+    gap: 24px;
+    align-items: stretch;
+}
+
+.game-card {
+    display: flex;
+    flex-direction: column;
+    border-radius: 22px;
+}
+
+.card-topline {
+    padding: 25px 26px 0;
+}
+
+.question-heading {
+    margin-top: 34px;
+}
+
+.question-heading h2 {
+    font-size: 23px;
+}
+
+.equation {
+    gap: 16px;
+    padding: 0 24px;
+    margin-top: 30px;
+}
+
+.operand,
+.answer-wrap {
+    width: 126px;
+    height: 140px;
+}
+
+.operand,
+.answer-wrap input {
+    font-size: 64px;
+}
+
+.operator {
+    min-width: 22px;
+    font-size: 34px;
+}
+
+.feedback-area {
+    height: 103px;
+    flex-shrink: 0;
+}
+
+.number-pad {
+    gap: 5px;
+    padding: 0 20px 28px;
+}
+
+.number-pad button {
+    width: 37px;
+    height: 42px;
+}
+
+.card-footer {
+    margin-top: auto;
+    padding: 15px 24px;
+}
+
+.journey-card {
+    border: 1px solid #e1e6d9;
+    border-radius: 22px;
+    background: #f8faf3;
+    box-shadow: 0 7px 30px #464d3108;
+    overflow: hidden;
+}
+
+.journey-heading {
+    padding: 24px 26px 17px;
+}
+
+.journey-heading .eyebrow {
+    font-size: 8px;
+    letter-spacing: 1.55px;
+    color: #859277;
+}
+
+.journey-heading h2 {
+    font-family: 'Manrope', sans-serif;
+    font-size: 24px;
+    font-weight: 750;
+    letter-spacing: -.9px;
+    margin: 7px 0 5px;
+    color: #4c634b;
+}
+
+.journey-heading p {
+    margin: 0;
+    color: #89947c;
+    font-size: 12px;
+}
+
+.trail-scene {
+    height: 235px;
+    position: relative;
+    background: #f2f4e7;
+    overflow: hidden;
+}
+
+.trail-landscape {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    inset: 0;
+}
+
+.scene-label {
+    position: absolute;
+    top: 77px;
+    font-size: 7px;
+    font-weight: 700;
+    letter-spacing: .9px;
+    color: #778567;
+    padding: 5px 7px;
+    border-radius: 5px;
+    background: #f9f9edbb;
+}
+
+.scene-label-left {
+    left: 15px;
+    transform: rotate(-4deg);
+}
+
+.scene-label-right {
+    right: 13px;
+    transform: rotate(4deg);
+}
+
+.trail-rail {
+    position: absolute;
+    left: 59px;
+    right: 59px;
+    bottom: 40px;
+    height: 40px;
+}
+
+.trail-road {
+    position: absolute;
+    inset: 0 -80px;
+    border-radius: 50%;
+    background: #e9d8b5;
+    border-top: 3px solid #f6e8ce;
+    border-bottom: 4px solid #d5c79f;
+    box-shadow: 0 5px 0 #aebf8a30;
+}
+
+.trail-road::after {
+    content: '';
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    top: 17px;
+    border-top: 2px dashed #c7b78d;
+}
+
+.trail-markers {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: absolute;
+    inset: 0 -7px;
+}
+
+.trail-marker {
+    width: 14px;
+    height: 14px;
+    border: 2px solid #cabc9a;
+    border-radius: 50%;
+    background: #f7edda;
+    transition: background .3s, border-color .3s;
+}
+
+.trail-marker.current {
+    background: #87a076;
+    border-color: #f8f7e6;
+    box-shadow: 0 0 0 3px #87a07650;
+}
+
+.trail-marker.start::after {
+    content: '';
+    display: block;
+    width: 4px;
+    height: 4px;
+    margin: 3px;
+    background: #cabc9a;
+    border-radius: 50%;
+}
+
+.trail-start-label {
+    position: absolute;
+    left: var(--start-progress);
+    bottom: -23px;
+    transform: translateX(-50%);
+    color: #778565;
+    font-size: 7px;
+    font-weight: 700;
+    letter-spacing: 1.4px;
+}
+
+.trail-encounter,
+.trail-prize {
+    position: absolute;
+    bottom: 14px;
+    width: 87px;
+    height: 87px;
+    transform: translateX(-50%);
+}
+
+.trail-encounter {
+    left: 0;
+    opacity: .85;
+}
+
+.trail-prize {
+    left: 100%;
+    width: 76px;
+    height: 76px;
+}
+
+.trail-encounter svg,
+.trail-prize svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.trail-encounter svg,
+.trail-prize svg,
+.treasure-chip svg {
+    fill: none;
+    stroke: #544a46;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.trail-prize svg {
+    animation: gift-bob 3s ease-in-out infinite;
+}
+
+.traveler {
+    position: absolute;
+    left: var(--progress);
+    bottom: 14px;
+    width: 77px;
+    height: 101px;
+    transform: translateX(-50%);
+    transition: left .7s cubic-bezier(.45, 0, .25, 1);
+    z-index: 2;
+}
+
+.traveler-shadow {
+    position: absolute;
+    width: 42px;
+    height: 8px;
+    bottom: -2px;
+    left: 18px;
+    border-radius: 50%;
+    background: #6d6b4530;
+    transition: opacity .3s;
+}
+
+.traveler-motion {
+    width: 100%;
+    height: 100%;
+}
+
+.milo {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    animation: milo-breathe 2.7s ease-in-out infinite;
+    transform-origin: 50% 95%;
+}
+
+.milo-name {
+    position: absolute;
+    left: 50%;
+    top: -17px;
+    transform: translateX(-50%);
+    background: #fff8e9;
+    color: #857760;
+    border: 1px solid #e2dac3;
+    border-radius: 5px;
+    font-size: 7px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 3px 6px;
+}
+
+.traveler.walking .traveler-motion {
+    animation: milo-hop .18s ease-in-out 4;
+}
+
+.traveler.walking .milo {
+    animation: none;
+}
+
+.milo-leg,
+.milo-arm {
+    transform-box: view-box;
+    transform-origin: 50px 85px;
+}
+
+.traveler.walking .milo-leg-left,
+.traveler.walking .milo-arm-right {
+    animation: milo-stride .18s ease-in-out 4 alternate;
+}
+
+.traveler.walking .milo-leg-right,
+.traveler.walking .milo-arm-left {
+    animation: milo-stride .18s ease-in-out 4 alternate-reverse;
+}
+
+.traveler.backward .milo {
+    transform: rotate(-5deg);
+}
+
+.traveler.celebrating .traveler-motion {
+    animation: milo-celebrate .6s ease-in-out 3;
+}
+
+.trail-scene.reward .trail-prize {
+    left: 83%;
+    bottom: 89px;
+    width: 92px;
+    height: 92px;
+    transition: left .5s, bottom .5s;
+}
+
+.trail-scene.reward .trail-prize svg {
+    animation: prize-appear .6s ease-out, gift-bob 2.2s .6s ease-in-out infinite;
+    filter: drop-shadow(0 0 12px #fff6bd);
+}
+
+.trail-scene.eating .trail-encounter {
+    opacity: 1;
+    z-index: 3;
+    animation: creature-chomp .9s ease-in-out;
+}
+
+.traveler.eaten .traveler-motion {
+    transform-origin: 50% 64%;
+    animation: milo-gobbled .9s ease-in forwards;
+}
+
+.traveler.eaten .milo {
+    animation: none;
+}
+
+.traveler.eaten .milo-name,
+.traveler.eaten .traveler-shadow {
+    opacity: 0;
+}
+
+.munch-puff {
+    position: absolute;
+    left: 0;
+    bottom: 72px;
+    transform: translateX(-50%);
+    font-size: 18px;
+    font-weight: 800;
+    color: #796078;
+    padding: 8px 12px;
+    background: #fff6e7;
+    border-radius: 50%;
+    opacity: 0;
+    z-index: 4;
+}
+
+.trail-scene.eating .munch-puff {
+    animation: munch-puff 1.3s .55s both;
+}
+
+.trail-confetti {
+    position: absolute;
+    inset: -160px -25px 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 4;
+}
+
+.trail-confetti i {
+    position: absolute;
+    top: 0;
+    left: var(--x);
+    width: 6px;
+    height: 11px;
+    border-radius: 2px;
+    background: var(--color);
+    opacity: 0;
+    animation: confetti-fall 1.8s var(--delay) ease-out forwards;
+}
+
+.trail-rules {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 25px;
+    background: #eef2e5;
+    font-size: 10px;
+    color: #758368;
+}
+
+.trail-rules strong {
+    margin-left: 5px;
+    font-weight: 700;
+}
+
+.rule-wrong {
+    color: #a17d76;
+}
+
+.rule-right {
+    color: #64835a;
+}
+
+.journey-message {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 23px;
+    min-height: 85px;
+}
+
+.journey-message-icon {
+    display: grid;
+    place-items: center;
+    width: 35px;
+    height: 35px;
+    flex-shrink: 0;
+    border-radius: 12px;
+    background: #e9efdf;
+    color: #8ba072;
+}
+
+.journey-message h3 {
+    font-size: 12px;
+    font-weight: 650;
+    color: #5a7153;
+    margin: 0 0 5px;
+}
+
+.journey-message p {
+    font-size: 10px;
+    color: #8b9580;
+    line-height: 1.6;
+    margin: 0;
+}
+
+.journey-card.finished .journey-message {
+    flex-wrap: wrap;
+    background: #fff9e9;
+}
+
+.journey-card.finished .journey-message > div {
+    flex: 1;
+}
+
+.journey-card.gobble .journey-message {
+    background: #f4eef6;
+}
+
+.journey-card.gobble .journey-message h3 {
+    color: #8b708f;
+}
+
+.journey-again {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    border: 1px solid #d6dfcb;
+    border-radius: 8px;
+    background: #fffdf6;
+    color: #5f7853;
+    padding: 9px 12px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.journey-again:hover {
+    background: #eaf1df;
+}
+
+.journey-again .icon {
+    width: 14px;
+    height: 14px;
+}
+
+.treasure-shelf {
+    border-top: 1px solid #e6eadc;
+    padding: 15px 24px 18px;
+}
+
+.treasure-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    color: #8a957c;
+    margin-bottom: 11px;
+}
+
+#treasure-count {
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0;
+    color: #9ba18f;
+}
+
+#treasure-items {
+    display: flex;
+    gap: 7px;
+    min-height: 32px;
+    align-items: center;
+}
+
+.treasure-empty {
+    color: #a0a58f;
+    font-size: 10px;
+}
+
+.treasure-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border: 1px solid #e4e7d6;
+    border-radius: 8px;
+    background: #fffdf5;
+    padding: 3px 8px 3px 4px;
+    color: #7c846c;
+    font-size: 9px;
+}
+
+.treasure-chip svg {
+    width: 25px;
+    height: 25px;
+}
+
+.number-pad button:disabled {
+    opacity: .55;
+    transform: none;
+}
+
+.below-card {
+    padding: 20px 0;
+}
+
+.site-footer {
+    padding-top: 17px;
+}
+
+@keyframes milo-breathe {
+    50% { transform: translateY(-2px) rotate(1deg); }
+}
+
+@keyframes gift-bob {
+    50% { transform: translateY(-4px) rotate(3deg); }
+}
+
+@keyframes milo-hop {
+    50% { transform: translateY(-5px); }
+}
+
+@keyframes milo-stride {
+    from { transform: rotate(-12deg); }
+    to { transform: rotate(12deg); }
+}
+
+@keyframes milo-celebrate {
+    40% { transform: translateY(-18px) rotate(-6deg); }
+    65% { transform: translateY(-14px) rotate(6deg); }
+}
+
+@keyframes prize-appear {
+    from { transform: scale(.3) rotate(-15deg); opacity: 0; }
+    to { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+@keyframes creature-chomp {
+    25% { transform: translateX(-50%) scale(1.15, 1.2); }
+    60% { transform: translateX(-50%) scale(1.05, .9); }
+    80% { transform: translateX(-50%) scale(1.1, 1.05); }
+}
+
+@keyframes milo-gobbled {
+    15% { transform: translateY(-7px) rotate(-8deg); }
+    100% { transform: translateY(18px) rotate(-22deg) scale(0); opacity: 0; }
+}
+
+@keyframes munch-puff {
+    20%, 55% { opacity: 1; transform: translate(-50%, -10px) scale(1.1) rotate(-8deg); }
+    100% { opacity: 0; transform: translate(-50%, -30px) scale(.8); }
+}
+
+@keyframes confetti-fall {
+    10% { opacity: 1; }
+    100% { transform: translateY(230px) rotate(240deg); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .traveler.eaten .traveler-motion {
+        opacity: 0;
     }
 }

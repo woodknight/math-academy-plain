@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { LIMITS, generateProblem, checkAnswer, questionText } from './game.js';
+import { LIMITS, generateProblem, checkAnswer, questionText, solutionText, advanceTrail, TRAIL_START, TRAIL_END, REWARDS, CREATURES } from './game.js';
 
 for (const [difficulty, limit] of Object.entries(LIMITS)) {
     for (const mode of ['addition', 'subtraction', 'mixed']) {
@@ -59,4 +59,51 @@ test('spoken questions and answers use clear operation words', () => {
     assert.equal(questionText(addition, true), '3 plus 2 equals 5. Well done!');
     assert.equal(questionText(subtraction), 'What is 5 minus 2?');
     assert.equal(questionText(subtraction, true), '5 minus 2 equals 3. Well done!');
+    assert.equal(solutionText(addition), '3 plus 2 equals 5.');
+    assert.equal(solutionText(subtraction), '5 minus 2 equals 3.');
+});
+
+test('mixed answers move one step each and can reverse direction without ending early', () => {
+    let position = TRAIL_START;
+    for (const [correct, expected] of [[true, 4], [false, 3], [false, 2], [true, 3]]) {
+        const step = advanceTrail(position, correct, () => { throw new Error('No draw before an endpoint'); });
+        assert.equal(step.position, expected);
+        assert.equal(step.outcome, null);
+        position = step.position;
+    }
+});
+
+test('ten net steps forward earn one random gift; three steps back trigger a creature', () => {
+    assert.equal(TRAIL_END - TRAIL_START, 10);
+    assert.equal(TRAIL_START, 3);
+    for (const correct of [true, false]) {
+        let position = TRAIL_START;
+        let draws = 0;
+        let step;
+        const distance = correct ? 10 : 3;
+        for (let index = 0; index < distance; index++) {
+            step = advanceTrail(position, correct, () => { draws++; return .5; });
+            position = step.position;
+            if (index < distance - 1) {
+                assert.equal(step.outcome, null);
+                assert.equal(draws, 0);
+            }
+        }
+        assert.equal(position, correct ? TRAIL_END : 0);
+        assert.equal(step.outcome.type, correct ? 'reward' : 'creature');
+        assert.equal(draws, 1);
+        // Further input at an endpoint must not mint more prizes or move past the road.
+        for (const answer of [true, false]) {
+            assert.deepEqual(advanceTrail(position, answer, () => { throw new Error('Duplicate draw'); }), { position, outcome: null });
+        }
+    }
+});
+
+test('every reward and creature can be drawn at its endpoint', () => {
+    for (const [items, position, correct] of [[REWARDS, TRAIL_END - 1, true], [CREATURES, 1, false]]) {
+        assert.equal(new Set(items.map((item) => item.id)).size, items.length);
+        items.forEach((item, index) => {
+            assert.equal(advanceTrail(position, correct, () => (index + .5) / items.length).outcome.item, item);
+        });
+    }
 });
