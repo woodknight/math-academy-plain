@@ -926,442 +926,6 @@ dialog li {
     }
 }
 
-@media(max-width:1000px) {
-    main {
-        padding: 0 30px
-    }
-
-    .settings {
-        gap: 15px
-    }
-
-    .segmented button {
-        padding: 0 10px;
-        font-size: 11px
-    }
-
-    .select-wrap select {
-        font-size: 11px
-    }
-
-    .equation {
-        gap: 18px
-    }
-
-    .operand,
-    .answer-wrap {
-        width: 165px;
-        height: 158px
-    }
-
-    .site-header {
-        padding: 0 35px
-    }
-}
-
-@media(max-width:760px) {
-    .site-header {
-        height: 82px;
-        padding: 0 23px
-    }
-
-    .brand {
-        font-size: 22px
-    }
-
-    .brand-mark {
-        width: 32px;
-        height: 32px;
-        border-radius: 10px
-    }
-
-    nav {
-        gap: 14px
-    }
-
-    .header-button {
-        font-size: 11px;
-        gap: 6px
-    }
-
-    .intro {
-        padding: 25px 0 32px
-    }
-
-    h1 {
-        font-size: 35px;
-        letter-spacing: -1.7px
-    }
-
-    .title-spark {
-        width: 25px;
-        right: -26px
-    }
-
-    .intro p {
-        font-size: 12px
-    }
-
-    .eyebrow {
-        font-size: 8px;
-        letter-spacing: 1.3px
-    }
-
-    main {
-        padding: 0 20px
-    }
-
-    .settings {
-        flex-wrap: wrap;
-        gap: 16px;
-        margin: 0 3px 20px
-    }
-
-    .practice-setting {
-        width: 100%
-    }
-
-    .practice-setting .segmented button {
-        flex: 1
-    }
-
-    .difficulty-setting {
-        flex: 1
-    }
-
-    .display-setting {
-        flex: 1
-    }
-
-    .display-setting .segmented button {
-        flex: 1
-    }
-
-    .segmented button {
-        font-size: 12px
-    }
-
-    .select-wrap select {
-        font-size: 12px
-    }
-
-    .card-topline {
-        padding: 21px 21px 0
-    }
-
-    .question-heading {
-        margin-top: 24px
-    }
-
-    .question-heading h2 {
-        font-size: 21px
-    }
-
-    .equation {
-        gap: 12px;
-        padding: 0 20px
-    }
-
-    .operand,
-    .answer-wrap {
-        width: clamp(96px, 21vw, 155px);
-        height: clamp(113px, 23vw, 148px);
-        border-radius: 13px
-    }
-
-    .answer-wrap input {
-        border-radius: 13px;
-        font-size: 60px
-    }
-
-    .operand {
-        font-size: 60px
-    }
-
-    .operator {
-        font-size: 30px;
-        min-width: 17px
-    }
-
-    .dot-grid {
-        gap: 10px;
-        padding: 9px
-    }
-
-    .dot {
-        width: 15px;
-        height: 15px
-    }
-
-    .dot-grid[data-density="medium"] {
-        gap: 6px;
-        padding: 6px
-    }
-
-    .dot-grid[data-density="medium"] .dot {
-        width: 10px;
-        height: 10px
-    }
-
-    .dot-grid[data-density="high"] {
-        gap: 4px;
-        padding: 5px
-    }
-
-    .dot-grid[data-density="high"] .dot {
-        width: 7px;
-        height: 7px
-    }
-
-    .answer-caption {
-        font-size: 6px;
-        letter-spacing: 1.2px;
-        bottom: 13px
-    }
-
-    .number-pad {
-        gap: 5px;
-        padding: 0 17px 24px
-    }
-
-    .number-pad button {
-        width: 34px;
-        height: 40px;
-        font-size: 15px;
-        border-radius: 7px
-    }
-
-    .number-pad .backspace-key {
-        margin-left: 0
-    }
-
-    .card-footer {
-        padding: 14px 19px
-    }
-
-    .encouragement {
-        font-size: 9px
-    }
-
-    .below-card {
-        font-size: 9px;
-        gap: 10px
-    }
-
-    .site-footer {
-        padding-top: 22px
-    }
-}
-
-@media(max-width:470px) {
-    .header-button span:not(.help-icon) {
-        display: none
-    }
-
-    .header-button {
-        padding: 10px 4px
-    }
-
-    .site-header {
-        padding: 0 20px
-    }
-
-    .nav-divider {
-        display: none
-    }
-
-    nav {
-        gap: 12px
-    }
-
-    .intro {
-        padding-top: 17px
-    }
-
-    h1 {
-        font-size: 29px;
-        letter-spacing: -1.4px
-    }
-
-    .title-spark {
-        right: -21px;
-        top: -9px;
-        width: 22px
-    }
-
-    .intro p {
-        font-size: 11px
-    }
-
-    main {
-        padding: 0 14px
-    }
-
-    .settings {
-        gap: 13px
-    }
-
-    .segmented button {
-        padding: 0 8px;
-        font-size: 11px;
-        gap: 5px
-    }
-
-    .select-wrap select {
-        font-size: 11px;
-        padding-left: 32px
-    }
-
-    .level-bars {
-        left: 10px
-    }
-
-    .setting-label {
-        font-size: 8px
-    }
-
-    .equation {
-        padding: 0 12px;
-        gap: 8px;
-        margin-top: 27px
-    }
-
-    .operand,
-    .answer-wrap {
-        width: clamp(76px, 22vw, 100px);
-        height: 111px
-    }
-
-    .operator {
-        font-size: 26px;
-        min-width: 16px
-    }
-
-    .dot-grid {
-        gap: 8px;
-        padding: 7px
-    }
-
-    .dot {
-        width: 13px;
-        height: 13px
-    }
-
-    .dot-grid[data-density="medium"] {
-        gap: 5px;
-        padding: 5px
-    }
-
-    .dot-grid[data-density="medium"] .dot {
-        width: 9px;
-        height: 9px
-    }
-
-    .dot-grid[data-density="high"] {
-        gap: 3px;
-        padding: 3px
-    }
-
-    .dot-grid[data-density="high"] .dot {
-        width: 6px;
-        height: 6px
-    }
-
-    .answer-wrap input,
-    .operand {
-        font-size: 50px
-    }
-
-    .card-topline {
-        padding: 17px 16px 0
-    }
-
-    .question-counter {
-        font-size: 8px;
-        letter-spacing: .8px
-    }
-
-    .practice-tag {
-        font-size: 9px
-    }
-
-    .question-heading h2 {
-        font-size: 19px
-    }
-
-    .feedback-area {
-        height: 106px
-    }
-
-    .number-pad {
-        display: grid;
-        grid-template-columns: repeat(6, 1fr);
-        gap: 8px;
-        padding: 0 22px 24px
-    }
-
-    .number-pad button {
-        width: 100%;
-        height: 41px
-    }
-
-    .card-footer {
-        padding: 12px 17px
-    }
-
-    .encouragement {
-        max-width: 115px;
-        text-align: right;
-        line-height: 1.6
-    }
-
-    .session-score {
-        font-size: 10px;
-        gap: 5px
-    }
-
-    .below-card {
-        gap: 8px;
-        flex-wrap: wrap;
-        font-size: 8px
-    }
-
-    .below-card .icon {
-        width: 13px
-    }
-
-    .site-footer {
-        font-size: 9px;
-        padding: 14px 12px 22px
-    }
-}
-
-@media(max-width:350px) {
-    .equation {
-        gap: 6px;
-        padding: 0 8px
-    }
-
-    .operand,
-    .answer-wrap {
-        width: 68px
-    }
-
-    .answer-wrap input,
-    .operand {
-        font-size: 43px
-    }
-
-    .dot-grid[data-density="medium"] {
-        gap: 3px;
-        padding: 4px
-    }
-
-    .dot-grid[data-density="medium"] .dot {
-        width: 8px;
-        height: 8px
-    }
-}
 
 @media(prefers-reduced-motion:reduce) {
 
@@ -2270,13 +1834,6 @@ h1 {
 .treasure-stack-label { font-size: 12px; color: #788367; line-height: 1.4; }
 #treasure-dialog .treasure-empty-state { padding: 26px 18px; background: #f0f3e8; border-radius: 14px; text-align: center; }
 
-@media (max-width: 650px) {
-    .site-header nav { gap: 12px; }
-    .player-button .player-avatar { display: grid; }
-    .player-button { min-width: 30px; }
-    #player-dialog, #treasure-dialog { padding: 28px 22px; }
-    #treasure-items.treasure-grid { grid-template-columns: repeat(auto-fill, minmax(95px, 1fr)); gap: 10px; }
-}
 
 .player-avatar svg { width: 28px; height: 28px; }
 .profile-portrait { width: 76px; height: 76px; margin: 18px 0 10px; border-radius: 22px; background: #edf1e4; }
@@ -2323,7 +1880,7 @@ h1 {
 #admin-status-values dt { color: #909984; }
 #admin-status-values dd { margin: 0; color: #65775b; overflow-wrap: anywhere; }
 #admin-form button:disabled, #admin-form input:disabled { opacity: .6; }
-@media (max-width: 650px) { #admin-dialog { padding: 28px 22px; } }
+
 
 /* A pirate chest with its collection always in view. */
 .treasure-box-art { width: 78px; height: 78px; }
@@ -2361,3 +1918,103 @@ h1 {
 #profile-edit-form input[type="file"] { width: 100%; font-size: 12px; padding: 10px; }
 @media (prefers-reduced-motion: reduce) { .receiving, .receiving .pirate-chest-lid, .receiving .pirate-chest-coins { animation: none; } }
 #avatar-crop-controls label, #avatar-crop-controls .field-hint { display: block; }
+
+/* Picture-first play: captions stay available to assistive technology. */
+.sr-only { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0, 0, 0, 0) !important; clip-path: inset(50%) !important; white-space: nowrap !important; border: 0 !important; }
+body { min-width: 1120px; }
+main { max-width: 1680px; padding: 0 24px 24px; }
+.site-header { max-width: 1680px; height: 76px; padding: 0 24px; }
+.brand-mark { width: 48px; height: 48px; margin: 0; border-radius: 16px; }
+.site-header nav { gap: 12px; }
+.header-button { width: 52px; height: 52px; padding: 0; justify-content: center; border: 1px solid #e3e5d9; border-radius: 16px; background: #fff; }
+.header-button .icon { width: 26px; height: 26px; }
+.help-icon { width: 27px; height: 27px; font-size: 19px; }
+.player-avatar { width: 40px; height: 40px; font-size: 30px; }
+.player-avatar svg { width: 40px; height: 40px; }
+.nav-divider { display: none; }
+.settings { align-items: center; gap: 14px; margin: 0 0 16px; flex-wrap: nowrap; }
+.setting { gap: 0; }
+.segmented { height: 60px; border-radius: 18px; gap: 5px; padding: 5px; }
+.settings .segmented button { min-width: 62px; padding: 0 18px; border-radius: 13px; }
+.setting-symbol, .mix-symbol { font-size: 32px; font-weight: 600; }
+.mini-dots { font-size: 37px; }
+.number-symbol { font-size: 25px; }
+.select-wrap { height: 60px; }
+.select-wrap select { height: 60px; min-width: 174px; padding: 0 40px 0 20px; border-radius: 18px; font-size: 22px; letter-spacing: 2px; }
+.select-chevron { right: 16px; }
+.play-layout { grid-template-columns: minmax(400px, .75fr) minmax(0, 1.25fr); gap: 20px; align-items: stretch; }
+.game-card, .journey-card { min-width: 0; border-radius: 26px; }
+.game-card { padding-bottom: 20px; }
+.question-heading { margin: 0; }
+.listen-button { position: absolute; right: 18px; top: 16px; display: grid; place-items: center; width: 50px; height: 50px; border: 1px solid #e5e9dc; border-radius: 50%; padding: 0; margin: 0; background: #f3f7ec; color: #6a8654; }
+.listen-button .icon { width: 26px; height: 26px; }
+.voice-notice { position: relative; margin: 68px 18px -54px; font-size: 11px; }
+.equation { width: 100%; margin: 86px auto 0; padding: 0 12px; gap: clamp(8px, .8vw, 16px); }
+.operand, .answer-wrap { width: clamp(94px, 8.4vw, 144px); height: 156px; border-radius: 22px; }
+.operand, .answer-wrap input { font-size: clamp(56px, 4.5vw, 78px); }
+.answer-wrap input { padding: 0 6px; border-radius: 22px; }
+.operator { min-width: 20px; font-size: 34px; }
+.dot-grid { max-width: 100%; padding: 10px; }
+.dot-grid[data-density="medium"] { gap: 7px; padding: 8px; }
+.dot-grid[data-density="high"] { gap: 4px; padding: 6px; }
+.feedback-area { height: 92px; padding-top: 14px; }
+#start-button { width: 70px; height: 64px; border-radius: 22px; padding: 0; box-shadow: 0 4px 0 #31563e; }
+.play-icon { width: 34px; height: 34px; }
+.feedback-picture { height: 62px; display: none; justify-content: center; }
+.feedback-picture svg { width: 62px; height: 62px; display: none; }
+.game-card:is(.correct, .wrong, .revealed) .feedback-picture { display: flex; }
+.game-card.correct .feedback-happy, .game-card.wrong .feedback-retry, .game-card.revealed .feedback-reveal { display: block; }
+.number-pad { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; width: min(100%, 382px); margin: auto auto 0; padding: 0 22px; }
+.number-pad button { width: 100%; height: 64px; font-size: 30px; font-weight: 600; border-radius: 18px; box-shadow: 0 3px 0 #e4e7dc; }
+.number-pad [data-key="0"] { grid-column: 2; grid-row: 4; }
+.number-pad .backspace-key { grid-column: 1; grid-row: 4; margin: 0; }
+.number-pad .enter-key { grid-column: 3; grid-row: 4; background: #e1efcc; }
+.number-pad .icon { width: 28px; height: 28px; }
+.card-footer { position: absolute; top: 16px; left: 18px; padding: 0; margin: 0; border: 0; background: transparent; }
+.session-score { gap: 10px; }
+.session-score strong { font-size: 24px; }
+.score-star { width: 44px; height: 44px; }
+.score-star .icon { width: 25px; height: 25px; }
+.trail-scene { height: clamp(350px, 47vh, 470px); border-radius: 25px 25px 0 0; }
+.traveler { width: 102px; height: 132px; }
+.traveler-shadow { width: 60px; left: 21px; }
+.trail-encounter { width: 112px; height: 112px; }
+.trail-prize, .trail-scene.reward .trail-prize { width: 106px; height: 106px; }
+.reward-tier { position: absolute; z-index: 4; top: 16px; right: 18px; margin: 0; padding: 7px 14px; border-radius: 18px; background: #fffdf0e6; color: #bf9031; font-size: 22px; letter-spacing: 3px; }
+.trail-rules { height: 38px; padding: 0 22px; font-size: 20px; }
+.trail-rules span { display: inline-flex; align-items: center; gap: 10px; }
+.trail-rules strong { font-size: 20px; }
+.treasure-shelf { display: grid; grid-template-columns: 176px minmax(0, 1fr); gap: 14px; align-items: center; padding: 16px 18px 22px; position: relative; }
+.treasure-box-button { position: relative; justify-content: center; min-height: 174px; padding: 14px 8px 8px; border-radius: 24px; border: 2px solid #e5c980; }
+.treasure-box-art { width: 146px; height: 146px; }
+.treasure-box-copy { position: absolute; top: 9px; right: 10px; }
+.treasure-box-copy #treasure-count { display: grid; place-items: center; min-width: 32px; height: 32px; padding: 0 7px; font-size: 20px; font-weight: 700; color: #785920; background: #ffe6a1; border-radius: 50%; }
+.treasure-box-arrow { position: absolute; bottom: 8px; right: 10px; font-size: 22px; }
+.treasure-panel-items { grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); max-height: 190px; gap: 10px; padding: 4px; }
+.treasure-panel-items .treasure-stack { position: relative; min-height: 150px; padding: 30px 4px 8px; border-radius: 18px; }
+.treasure-panel-items .treasure-stack svg { width: 108px; max-width: 100%; height: 108px; }
+.treasure-stack-count { position: absolute; top: 7px; right: 7px; font-size: 20px; padding: 3px 9px; }
+.treasure-panel-items .treasure-stack-count { top: 7px; right: 7px; font-size: 19px; }
+.treasure-panel-empty { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 4px; background: none; border: 0; }
+.treasure-panel-empty span { display: grid; place-items: center; height: 150px; border: 2px dashed #ddcfaa; border-radius: 18px; background: #fcf7e8; color: #dfcba1; font-size: 64px; }
+.treasure-save-icon { position: absolute; bottom: 4px; left: 96px; color: #849571; font-size: 15px; }
+.treasure-save-icon[data-state="error"] { color: #bc7455; font-weight: 700; }
+#retry-treasures { position: absolute; bottom: 3px; right: 18px; width: 36px; height: 36px; border-radius: 50%; background: #fff2d7; font-size: 25px; line-height: 1; }
+#treasure-dialog { max-width: 900px; }
+.treasure-dialog-art { width: 124px; height: 124px; margin: 0 auto; }
+.treasure-dialog-art svg { width: 100%; height: 100%; }
+#treasure-items.treasure-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+#treasure-items .treasure-stack { position: relative; padding: 32px 8px 14px; }
+#treasure-items .treasure-stack svg { width: 136px; height: 136px; }
+.treasure-empty-state span { font-size: 58px; color: #c6cca5; }
+.treasure-profile-entry { width: 52px; height: 52px; margin: 10px auto 0; display: block; border: 1px solid #dce4d1; border-radius: 50%; background: #edf3e5; font-size: 30px; }
+
+
+.settings .practice-setting, .settings .difficulty-setting, .settings .display-setting { width: auto; flex: 0 0 auto; }
+@media (max-height: 850px) {
+    .equation { margin-top: 78px; }
+    .operand, .answer-wrap { height: 138px; }
+    .feedback-area { height: 80px; }
+    .number-pad button { height: 60px; }
+    .trail-scene { height: clamp(320px, 44vh, 374px); }
+}

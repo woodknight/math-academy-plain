@@ -233,7 +233,8 @@ function resetTrail() {
     $('#trail-prize').replaceChildren(sprite('gift'));
     $('#trail-prize').style.removeProperty('visibility');
     const tier = TREASURE_TIERS[difficulty];
-    $('#reward-tier').textContent = `${difficulty[0].toUpperCase() + difficulty.slice(1)} adventures · ${tier.label} treasures ${'★'.repeat(tier.stars)}`;
+    $('#reward-tier').textContent = '★'.repeat(tier.stars);
+    $('#reward-tier').setAttribute('aria-label', `${difficulty} adventures: ${tier.label} treasures`);
     $('#trail-encounter').replaceChildren(sprite(encounter.id, 'creature'));
     $('#trail-confetti').replaceChildren();
     $('#journey-again').hidden = true;

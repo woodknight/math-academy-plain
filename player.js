@@ -37,6 +37,7 @@ export class PlayerUI {
                 && TIER_IDS.has(item.tier ?? 'classic') && typeof item.playerId === 'string' && /^[a-f0-9-]{36}$/i.test(item.claimId));
         } catch { /* The server remains the source of saved collections. */ }
         $('#treasure-box-art').append(sprite('chest'));
+        $('#treasure-dialog-art').append(sprite('chest'));
         $('#player-button').addEventListener('click', () => this.open('player-dialog'));
         $('#treasure-box').addEventListener('click', () => this.openBox());
         $('#choose-register').addEventListener('click', () => this.setAuthMode('register'));
@@ -363,7 +364,8 @@ export class PlayerUI {
         $('#profile-edit-form').hidden = !this.editing;
         $('#treasure-owner').textContent = title;
         $('#treasure-title').textContent = title;
-        $('#treasure-count').textContent = `${total} collected · Open the box`;
+        $('#treasure-count').textContent = String(total);
+        $('#treasure-box').setAttribute('aria-label', `${title}, ${total} treasures. Open the chest.`);
         $('#treasure-summary').textContent = `${total} ${total === 1 ? 'treasure' : 'treasures'} · ${new Set(items.map(item => item.id)).size} of ${REWARDS.length} kinds discovered`;
         $('#treasure-empty').hidden = total > 0;
         $('#treasure-create-profile').hidden = !!this.player;
@@ -371,6 +373,9 @@ export class PlayerUI {
             : !this.player ? 'Guest play · Create a profile to keep future treasures.'
                 : pending.length ? `${pending.length} waiting to save. ${this.saveError || 'Saving your treasures…'}`
                     : this.saveError || 'All treasures saved. Ready for your next visit!';
+        $('#treasure-save-icon').textContent = !this.connected || this.saveError ? '!' : pending.length ? '↻' : '✓';
+        $('#treasure-save-icon').dataset.state = !this.connected || this.saveError ? 'error' : pending.length ? 'saving' : 'saved';
+        $('#treasure-save-icon').title = $('#treasure-save-status').textContent;
         $('#retry-treasures').hidden = !pending.length || !this.saveError;
         $('#treasure-panel-empty').hidden = total > 0;
         const tiles = items.map(item => {
@@ -383,7 +388,7 @@ export class PlayerUI {
             count.className = 'treasure-stack-count';
             count.textContent = `×${item.count}`;
             const label = document.createElement('span');
-            label.className = 'treasure-stack-label';
+            label.className = 'treasure-stack-label sr-only';
             label.textContent = item.label;
             tile.append(count, this.sprite(item.id, 'reward', item.tier), label);
             return tile;

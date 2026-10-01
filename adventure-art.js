@@ -102,7 +102,6 @@ export function routeArt(adventure, position) {
             art = polyline('#d0c09a', 27) + polyline(w.path, 23) + polyline('#b9a580', 2, 'stroke-dasharray="4 10"');
     }
     art += points.map((p, index) => circle(p.x, p.y+2, index === position ? 7 : 5, index === position ? '#85a676' : '#fff3d6', `class="trail-marker${index === position ? ' current' : ''}" stroke="${index === position ? '#fffdf2' : '#bdaf92'}" stroke-width="2"`)).join('');
-    art += `<g fill="${w.ink}" stroke="none" font-family="sans-serif" font-size="9" font-weight="700" text-anchor="middle" letter-spacing="1"><text x="70" y="${points[0].y+30}">SNACK STOP</text><text x="190" y="${points[2].y+30}">START</text><text x="490" y="${points[7].y+30}">SURPRISE</text></g>`;
     return art;
 }
 
