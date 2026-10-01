@@ -7,6 +7,7 @@ import { AVATARS, DEFAULT_AVATAR } from './profiles.js';
 import { DEFAULT_SERVER_SETTINGS, validateServerSettings } from './server-config.js';
 import { normalizeAvatarPhoto } from './avatar-service.js';
 import { TIER_IDS, treasureKey } from './treasures.js';
+import { createLearningState, applyAttempt, validateAttempt } from './learning.js';
 
 const scrypt = promisify(deriveKey);
 export const SESSION_SECONDS = 30 * 24 * 60 * 60;
@@ -232,6 +233,38 @@ export class PlayerStore {
                 player.treasures[key] = (player.treasures[key] || 0) + 1;
             }
             return this.profile(player);
+        });
+    }
+
+    learning(token) {
+        const player = this.authenticate(token);
+        if (!player) fail(401, 'Log in to see your learning progress.');
+        const learning = structuredClone(player.learning?.state ?? createLearningState());
+        return { playerId: player.id, learning, revision: learning.revision };
+    }
+
+    async saveLearning(token, input) {
+        if (!Array.isArray(input.attempts) || !input.attempts.length || input.attempts.length > 10) fail(400, 'Send 1–10 learning attempts.');
+        const attempts = input.attempts.map(validateAttempt);
+        return this.mutate(state => {
+            const session = state.sessions.find(item => item.hash === digest(token || '') && item.expiresAt > Date.now());
+            const player = session && state.players.find(item => item.id === session.playerId);
+            if (!player) fail(401, 'Log in to save learning progress.');
+            if (input.playerId !== player.id) throw Object.assign(new Error('Your player changed. Log in to the original player to save progress.'), { status: 409, code: 'PLAYER_CHANGED' });
+            const learning = player.learning ??= { state: createLearningState(), receipts: {}, questions: {} };
+            for (const attempt of attempts) {
+                const fingerprint = digest(JSON.stringify(attempt));
+                if (Object.hasOwn(learning.receipts, attempt.id)) {
+                    if (learning.receipts[attempt.id] !== fingerprint) fail(409, 'This learning receipt has already been saved with different answers.');
+                    continue;
+                }
+                const question = applyAttempt(learning.state, attempt, learning.questions[attempt.questionId]);
+                const { attempts: detail, ...compact } = question;
+                learning.questions[attempt.questionId] = compact;
+                learning.receipts[attempt.id] = fingerprint;
+            }
+            return { playerId: player.id, learning: structuredClone(learning.state), revision: learning.state.revision,
+                acceptedIds: attempts.map(attempt => attempt.id) };
         });
     }
 }

@@ -19,6 +19,9 @@ const files = new Map([
     ['/treasures.js', ['treasures.js', 'text/javascript; charset=utf-8']],
     ['/round-music.js', ['round-music.js', 'text/javascript; charset=utf-8']],
     ['/game.js', ['game.js', 'text/javascript; charset=utf-8']],
+    ['/learning.js', ['learning.js', 'text/javascript; charset=utf-8']],
+    ['/learning-client.js', ['learning-client.js', 'text/javascript; charset=utf-8']],
+    ['/learning-ui.js', ['learning-ui.js', 'text/javascript; charset=utf-8']],
     ['/adventures.js', ['adventures.js', 'text/javascript; charset=utf-8']],
     ['/adventure-art.js', ['adventure-art.js', 'text/javascript; charset=utf-8']],
     ['/speech.js', ['speech.js', 'text/javascript; charset=utf-8']],
@@ -110,7 +113,11 @@ export function createGameServer({ players, speech, secureCookies = false }) {
                     json(response, 200, { player: player ? players.profile(player) : null });
                     return;
                 }
-                const routes = ['/api/player/register', '/api/player/login', '/api/player/logout', '/api/player/treasures', '/api/player/profile'];
+                if (pathname === '/api/player/learning' && request.method === 'GET') {
+                    json(response, 200, players.learning(token));
+                    return;
+                }
+                const routes = ['/api/player/register', '/api/player/login', '/api/player/logout', '/api/player/treasures', '/api/player/profile', '/api/player/learning'];
                 if (!routes.includes(pathname)) { json(response, 404, { error: 'Not found.' }); return; }
                 if (request.method !== 'POST') { json(response, 405, { error: 'Method not allowed.' }, { Allow: 'POST' }); return; }
                 checkOrigin(request);
@@ -134,6 +141,8 @@ export function createGameServer({ players, speech, secureCookies = false }) {
                     json(response, 200, { player: null }, { 'Set-Cookie': cookie('', 0) });
                 } else if (pathname.endsWith('/profile')) {
                     json(response, 200, { player: await players.updateProfile(token, input) });
+                } else if (pathname.endsWith('/learning')) {
+                    json(response, 200, await players.saveLearning(token, input));
                 } else {
                     json(response, 200, { player: await players.collect(token, input) });
                 }

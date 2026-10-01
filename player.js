@@ -19,10 +19,12 @@ export function treasureReceiptId(source = globalThis.crypto) {
 }
 
 export class PlayerUI {
-    constructor({ sprite, onOpen, onClose }) {
+    constructor({ sprite, onOpen, onClose, onPlayerChange = () => {} }) {
         this.sprite = sprite;
         this.onOpen = onOpen;
         this.onClose = onClose;
+        this.onPlayerChange = onPlayerChange;
+        this.reportedPlayerId = null;
         this.player = null;
         this.guestTreasures = {};
         this.connected = false;
@@ -175,7 +177,7 @@ export class PlayerUI {
     setBusy(busy) {
         this.busy = busy;
         $('#player-dialog').setAttribute('aria-busy', String(busy));
-        document.querySelectorAll('#player-form input, #player-form button, #profile-edit-form input, #profile-edit-form button, .player-auth-tabs button, #player-logout, #profile-edit, #profile-open-box, #admin-open-settings, #retry-player').forEach(control => { control.disabled = busy; });
+        document.querySelectorAll('#player-form input, #player-form button, #profile-edit-form input, #profile-edit-form button, .player-auth-tabs button, #player-logout, #profile-edit, #profile-open-box, #profile-learning, #admin-open-settings, #retry-player').forEach(control => { control.disabled = busy; });
         $('#profile-save').disabled = busy || !!this.avatarEditor?.loading;
     }
 
@@ -395,5 +397,10 @@ export class PlayerUI {
         });
         $('#treasure-items').replaceChildren(...tiles);
         $('#treasure-panel-items').replaceChildren(...tiles.map(tile => tile.cloneNode(true)));
+        const playerId = this.player?.id ?? null;
+        if (this.reportedPlayerId !== playerId) {
+            this.reportedPlayerId = playerId;
+            this.onPlayerChange?.(this.player);
+        }
     }
 }

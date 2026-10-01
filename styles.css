@@ -2011,6 +2011,22 @@ main { max-width: 1680px; padding: 0 24px 24px; }
 
 
 .settings .practice-setting, .settings .difficulty-setting, .settings .display-setting { width: auto; flex: 0 0 auto; }
+
+.learning-entry { margin-top: 18px; }
+#learning-dialog { max-width: 870px; max-height: calc(100dvh - 32px); overflow-y: auto; }
+#learning-dialog h2 { margin-bottom: 12px; }
+#learning-dialog h3 { margin: 25px 0 10px; font-size: 17px; }
+.learning-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 24px 0; }
+.learning-metrics > div { padding: 16px 12px; border-radius: 16px; background: #edf3e5; }
+.learning-metrics strong { display: block; font-size: 28px; color: #55784a; }
+.learning-metrics span { display: block; margin-top: 5px; font-size: 12px; color: #6e7865; }
+#learning-dialog .learning-note { font-size: 12px; line-height: 1.6; color: #77816d; }
+.learning-table-wrap { overflow-x: auto; }
+.learning-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
+.learning-table th { color: #55784a; font-weight: 600; white-space: nowrap; }
+.learning-table th, .learning-table td { padding: 12px 9px; border-bottom: 1px solid #e6ebdf; }
+.learning-table td:first-child { font-weight: 600; }
+#learning-status { font-size: 12px; color: #55784a; }
 @media (max-height: 850px) {
     .equation { margin-top: 78px; }
     .operand, .answer-wrap { height: 138px; }

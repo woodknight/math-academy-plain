@@ -2,7 +2,10 @@ import { generateProblem, checkAnswer, questionText, solutionText, advanceTrail,
 import { chooseAdventure, trailPoints, CREATURES } from './adventures.js';
 import { landscapeArt, routeArt, gearArt, rewardArt, creatureArt } from './adventure-art.js';
 import { SpeechPlayer } from './speech.js';
-import { PlayerUI } from './player.js';
+import { PlayerUI, treasureReceiptId } from './player.js';
+import { AdaptiveScheduler, LearningClock, adventureRewardDifficulty } from './learning.js';
+import { LearningClient } from './learning-client.js';
+import { LearningUI } from './learning-ui.js';
 import { TREASURE_TIERS, upgradeTreasure } from './treasures.js';
 import { RoundMusicPlayer } from './round-music.js';
 
@@ -12,7 +15,7 @@ const card = $('#game-card');
 const feedback = $('#feedback');
 const helpDialog = $('#help-dialog');
 let mode = 'addition';
-let difficulty = 'easy';
+let difficulty = 'adaptive';
 let display = 'dots';
 let problem = { a: 3, b: 2, operation: 'addition', answer: 5 };
 let started = false;
@@ -24,6 +27,24 @@ let wrongAttempts = 0;
 let revealingAnswer = false;
 let showingNumericSolution = false;
 let round = 0;
+let questionSession;
+let adventureDifficulty = null;
+let learnerRevision = 0;
+let learnerReady = Promise.resolve();
+let learningUI;
+let speechRevision = 0;
+const learningClock = new LearningClock();
+const scheduler = new AdaptiveScheduler();
+const learningClient = new LearningClient({
+    onChange: () => learningUI?.render(),
+    onAuthError: error => {
+        playerUI.player = null;
+        playerUI.revision++;
+        playerUI.setAuthMode('login');
+        playerUI.error(error.message);
+        playerUI.render();
+    },
+});
 let audioContext;
 const activeSounds = new Set();
 const roundMusic = new RoundMusicPlayer(() => audioContext);
@@ -48,6 +69,7 @@ const speechPlayer = new SpeechPlayer({
 
 function setLocked(value) {
     locked = value;
+    if (value) learningClock.pause('locked'); else learningClock.resume('locked');
     answerInput.readOnly = value;
     document.querySelectorAll('.number-pad button, #mode-options button, #display-options button, #difficulty, #player-button').forEach((control) => {
         control.disabled = value;
@@ -93,11 +115,60 @@ function renderTrailPosition() {
 
 const playerUI = new PlayerUI({
     sprite,
-    onOpen: () => stopSpeech(),
+    onOpen: openDialog,
     onClose: () => {
+        updateDialogClock();
         if (started && !locked && !document.querySelector('dialog[open]')) speak(questionText(problem));
     },
+    onPlayerChange: changeLearner,
 });
+learningUI = new LearningUI({ client: learningClient, onOpen: openDialog, onClose: () => {
+    updateDialogClock();
+    if (started && !locked) speak(questionText(problem));
+} });
+
+function openDialog() { learningClock.pause('dialog'); stopSpeech(); }
+function updateDialogClock() {
+    if (document.querySelector('dialog[open]')) learningClock.pause('dialog');
+    else learningClock.resume('dialog');
+}
+// Covers dialogs opened by other controls too, including the administrator panel.
+new MutationObserver(updateDialogClock).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['open'] });
+function changeLearner(player) {
+    const revision = ++learnerRevision;
+    round++;
+    setLocked(true);
+    stopSpeech();
+    stopSounds();
+    learnerReady = learningClient.setPlayer(player?.id ?? null).finally(() => {
+        if (revision !== learnerRevision) return;
+        difficulty = 'adaptive';
+        $('#difficulty').value = difficulty;
+        scheduler.reset();
+        correctCount = 0;
+        questionNumber = 1;
+        adventureNumber = 0;
+        $('#correct-count').textContent = '0';
+        $('#encouragement').textContent = 'Every try helps your brain grow.';
+        resetTrail();
+        nextProblem();
+    });
+}
+
+function questionDifficulty() {
+    return adventureRewardDifficulty(null, problem);
+}
+function rewardDifficulty() { return difficulty === 'adaptive' ? adventureDifficulty ?? questionDifficulty() : difficulty; }
+function recordAdventureDifficulty() {
+    if (difficulty !== 'adaptive') return;
+    adventureDifficulty = adventureRewardDifficulty(adventureDifficulty, problem);
+    renderRewardTier();
+}
+function renderRewardTier() {
+    const tier = TREASURE_TIERS[rewardDifficulty()];
+    $('#reward-tier').textContent = '★'.repeat(tier.stars);
+    $('#reward-tier').setAttribute('aria-label', `${tier.label} treasures for this adventure`);
+}
 
 function celebrate() {
     const colors = ['#e9a18c', '#a4bd87', '#e5c879', '#b9acd4'];
@@ -111,6 +182,7 @@ function celebrate() {
 }
 
 async function moveMilo(correct) {
+    const currentRound = round;
     const step = advanceTrail(trailPosition, correct, Math.random, encounter);
     trailPosition = step.position;
     trailOutcome = step.outcome;
@@ -125,6 +197,7 @@ async function moveMilo(correct) {
     trailMessage(correct ? `${adventure.activity.verb} a little farther!` : 'Oops, a little step back!',
         `${TRAIL_END - trailPosition} ${TRAIL_END - trailPosition === 1 ? 'step' : 'steps'} to a surprise. ${trailPosition} ${trailPosition === 1 ? 'step' : 'steps'} to the hungry creature.`);
     await wait(750);
+    if (round !== currentRound) return;
     traveler.classList.remove('walking', 'backward');
     if (!trailOutcome) {
         trailScene.dataset.phase = 'ready';
@@ -132,7 +205,7 @@ async function moveMilo(correct) {
     }
 
     const { type } = trailOutcome;
-    const item = type === 'reward' ? upgradeTreasure(trailOutcome.item, difficulty) : trailOutcome.item;
+    const item = type === 'reward' ? upgradeTreasure(trailOutcome.item, rewardDifficulty()) : trailOutcome.item;
     journeyCard.classList.add('finished');
     trailScene.setAttribute('aria-label', type === 'reward' ? `Milo reached the finish and received ${item.name}.` : `Milo reached the snack stop and was gobbled up by ${item.name}.`);
     if (type === 'reward') {
@@ -149,7 +222,7 @@ async function moveMilo(correct) {
         const celebrationAnimations = trailScene.getAnimations({ subtree: true })
             .filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity);
         await Promise.all([
-            flyTreasure(item),
+            flyTreasure(item, currentRound),
             ...celebrationAnimations.map((animation) => animation.finished.catch(() => { })),
         ]);
         return;
@@ -163,13 +236,15 @@ async function moveMilo(correct) {
         trailMessage(`Nom nom! ${item.label} gobbled Milo!`, 'A silly little tumble. Milo will be back for another adventure.');
         if (!revealingAnswer) showFeedback('Gulp! Let’s give Milo a fresh start.');
         await wait(1100);
+        if (round !== currentRound) return;
         trailScene.dataset.phase = 'eaten';
     }
     $('#answer-hint').textContent = 'A fresh adventure starts after the music.';
 }
 
-async function flyTreasure(item) {
+async function flyTreasure(item, currentRound) {
     await wait(650);
+    if (round !== currentRound) return;
     const source = $('#trail-prize');
     const target = $('#treasure-box-art');
     const from = source.getBoundingClientRect();
@@ -192,6 +267,7 @@ async function flyTreasure(item) {
         ];
         if (flight.animate) await flight.animate(frames, { duration: reduced ? 180 : 1400, easing: 'cubic-bezier(.4,0,.3,1)' }).finished.catch(() => {});
         else await wait(180);
+        if (round !== currentRound) return;
         target.classList.add('receiving');
         const tile = Array.from(document.querySelectorAll('#treasure-panel-items .treasure-stack')).find(tile => tile.dataset.key === item.key);
         tile?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
@@ -203,16 +279,18 @@ async function flyTreasure(item) {
 
 async function playRoundMusic(outcome) {
     stopSpeech();
+    learningClock.pause('music');
     roundMusicPlaying = true;
     trailScene.dataset.phase = outcome === 'reward' ? 'win-music' : 'loss-music';
     $('#answer-hint').textContent = outcome === 'reward' ? 'A little victory tune! Next adventure coming…' : 'A bouncy little sad tune. Let’s try a fresh adventure!';
     try {
         if (soundEnabled && audioContext?.state === 'running') await roundMusic.play(outcome);
         else await wait(650);
-    } finally { roundMusicPlaying = false; }
+    } finally { roundMusicPlaying = false; learningClock.resume('music'); }
 }
 
 function resetTrail() {
+    adventureDifficulty = null;
     adventure = chooseAdventure(adventure);
     encounter = CREATURES[Math.floor(Math.random() * CREATURES.length)];
     adventureNumber++;
@@ -232,9 +310,7 @@ function resetTrail() {
     $('#adventure-description').textContent = adventure.activity.detail;
     $('#trail-prize').replaceChildren(sprite('gift'));
     $('#trail-prize').style.removeProperty('visibility');
-    const tier = TREASURE_TIERS[difficulty];
-    $('#reward-tier').textContent = '★'.repeat(tier.stars);
-    $('#reward-tier').setAttribute('aria-label', `${difficulty} adventures: ${tier.label} treasures`);
+    renderRewardTier();
     $('#trail-encounter').replaceChildren(sprite(encounter.id, 'creature'));
     $('#trail-confetti').replaceChildren();
     $('#journey-again').hidden = true;
@@ -248,13 +324,17 @@ function resetTrail() {
 }
 
 function stopSpeech() {
+    speechRevision++;
     speechPlayer.stop();
+    learningClock.resume('speech');
 }
 
 function speak(text) {
     stopSpeech();
     if (roundMusicPlaying || !soundEnabled || !started || document.querySelector('dialog[open]')) return Promise.resolve();
-    return speechPlayer.play(text);
+    learningClock.pause('speech');
+    const revision = speechRevision;
+    return speechPlayer.play(text).finally(() => { if (revision === speechRevision) learningClock.resume('speech'); });
 }
 
 function prepareSpeech() {
@@ -428,10 +508,12 @@ function focusAnswer() {
     if (window.matchMedia('(pointer: fine)').matches && !document.querySelector('dialog[open]')) answerInput.focus({ preventScroll: true });
 }
 
-function startGame(readQuestion = true) {
+function startGame(readQuestion = true, timed = true) {
     unlockAudio();
     if (started) return;
     started = true;
+    learningClock.reset(timed);
+    learningClock.start();
     showFeedback('You’ve got this. Take your time!');
     if (readQuestion) speak(questionText(problem));
 }
@@ -447,8 +529,13 @@ function nextProblem() {
     card.classList.remove('correct', 'wrong', 'revealed');
     $('.answer-caption').textContent = 'YOUR ANSWER';
     $('#answer-hint').textContent = 'Type your answer or tap the numbers below.';
-    problem = generateProblem(mode, difficulty, problem);
+    problem = difficulty === 'adaptive' ? scheduler.next(learningClient.state, mode, display).problem : generateProblem(mode, difficulty, problem);
+    questionSession = { id: treasureReceiptId(), playerId: learningClient.playerId ?? null,
+        problem: { a: problem.a, b: problem.b, operation: problem.operation }, display, practice: difficulty };
+    learningClock.reset();
+    if (started) learningClock.start();
     renderProblem();
+    renderRewardTier();
     prepareSpeech();
     if (started) {
         showFeedback('You’ve got this. Take your time!');
@@ -460,10 +547,15 @@ async function evaluate(submitted = false) {
     if (locked || !answerInput.value) return;
     const result = checkAnswer(answerInput.value, problem.answer, submitted);
     if (result === 'pending') return;
+    const activeMs = learningClock.read();
     setLocked(true);
     stopSpeech();
     const currentRound = round;
+    recordAdventureDifficulty();
     const movement = moveMilo(result === 'correct');
+    learningClient.record({ ...questionSession, id: treasureReceiptId(), questionId: questionSession.id,
+        index: wrongAttempts + 1, answer: Number(answerInput.value), activeMs,
+        end: trailOutcome?.type === 'creature' ? 'adventure-ended' : null });
     if (result === 'correct') {
         card.classList.add('correct');
         correctCount++;
@@ -478,7 +570,11 @@ async function evaluate(submitted = false) {
             await Promise.all([wait(1600), movement, answerSpeech]);
         }
         if (round !== currentRound) return;
-        if (trailOutcome?.type === 'reward') { await playRoundMusic('reward'); resetTrail(); }
+        if (trailOutcome?.type === 'reward') {
+            await playRoundMusic('reward');
+            if (round !== currentRound) return;
+            resetTrail();
+        }
         questionNumber++;
         nextProblem();
         focusAnswer();
@@ -498,7 +594,11 @@ async function evaluate(submitted = false) {
             speak(solutionText(problem));
             await Promise.all([movement, wait(3000)]);
             if (round !== currentRound) return;
-            if (trailOutcome) { await playRoundMusic(trailOutcome.type); resetTrail(); }
+            if (trailOutcome) {
+                await playRoundMusic(trailOutcome.type);
+                if (round !== currentRound) return;
+                resetTrail();
+            }
             questionNumber++;
             nextProblem();
             focusAnswer();
@@ -508,6 +608,7 @@ async function evaluate(submitted = false) {
         if (round !== currentRound) return;
         if (trailOutcome) {
             await playRoundMusic(trailOutcome.type);
+            if (round !== currentRound) return;
             resetTrail();
             questionNumber++;
             nextProblem();
@@ -523,7 +624,7 @@ async function evaluate(submitted = false) {
 
 function handleKey(key) {
     if (locked) return;
-    startGame(false);
+    startGame(false, false);
     if (key === 'Backspace') {
         answerInput.value = answerInput.value.slice(0, -1);
     } else if (key === 'Enter') {
@@ -540,7 +641,7 @@ $('#listen-button').addEventListener('click', () => {
     speak(revealingAnswer || showingNumericSolution ? solutionText(problem) : questionText(problem, locked && card.classList.contains('correct')));
 });
 answerInput.addEventListener('input', () => {
-    startGame(false);
+    startGame(false, false);
     answerInput.value = answerInput.value.replace(/\D/g, '').replace(/^0+(?=\d)/, '').slice(0, 2);
     evaluate();
 });
@@ -602,6 +703,10 @@ $('#display-options').addEventListener('click', (event) => {
     if (locked || !value || value === display) return;
     display = value;
     updateButtons('#display-options', 'display', display);
+    if (difficulty === 'adaptive' || wrongAttempts) { nextProblem(); return; }
+    questionSession.display = display;
+    learningClock.reset();
+    if (started) learningClock.start();
     renderProblem();
 });
 $('#sound-toggle').addEventListener('click', () => {
@@ -620,7 +725,7 @@ $('#sound-toggle').addEventListener('click', () => {
         audioContext?.suspend().catch(() => { });
     }
 });
-$('#help-button').addEventListener('click', () => { stopSpeech(); helpDialog.showModal(); });
+$('#help-button').addEventListener('click', () => { openDialog(); helpDialog.showModal(); });
 $('#close-help').addEventListener('click', () => helpDialog.close());
 $('#help-done').addEventListener('click', () => helpDialog.close());
 helpDialog.addEventListener('keydown', (event) => {
@@ -634,12 +739,21 @@ helpDialog.addEventListener('click', (event) => {
     if (event.target === helpDialog && (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom)) helpDialog.close();
 });
 helpDialog.addEventListener('close', () => {
+    updateDialogClock();
     if (started && !locked) speak(questionText(problem));
 });
-window.addEventListener('pagehide', () => { stopSpeech(); stopSounds(); });
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) learningClock.pause('background'); else learningClock.resume('background');
+});
+window.addEventListener('online', () => learningClient.setPlayer(learningClient.playerId));
+window.addEventListener('pagehide', () => { learningClock.pause('background'); stopSpeech(); stopSounds(); });
+window.addEventListener('pageshow', () => { if (!document.hidden) learningClock.resume('background'); });
+if (document.hidden) learningClock.pause('background');
 renderProblem();
 resetTrail();
 setLocked(true);
 await playerUI.init();
+if (learningClient.playerId === undefined) changeLearner(playerUI.player);
+await learnerReady;
 setLocked(false);
 prepareSpeech();

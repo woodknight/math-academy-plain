@@ -72,11 +72,13 @@
                     </div>
                 </div>
                 <div class="setting difficulty-setting"><label class="setting-label sr-only" for="difficulty">DIFFICULTY</label>
-                    <div class="select-wrap"><select id="difficulty">
+                    <div class="select-wrap"><select id="difficulty" aria-describedby="difficulty-help">
+                            <option value="adaptive" aria-label="Adaptive practice · within 50" title="Adaptive practice" selected>✦ · 50</option>
                             <option value="easy">★ · 10</option>
                             <option value="medium">★★ · 20</option>
                             <option value="hard">★★★ · 50</option>
                         </select><span class="select-chevron" aria-hidden="true">⌄</span></div>
+                    <span id="difficulty-help" class="sr-only">The sparkle selects adaptive practice within 50. Star options select a fixed range.</span>
                 </div>
                 <div class="setting display-setting"><span class="setting-label sr-only" id="display-label">SHOW AS</span>
                     <div class="segmented" role="group" aria-labelledby="display-label" id="display-options"><button
@@ -253,6 +255,36 @@
         </div>
         <p id="player-error" class="player-error" role="alert" hidden></p>
         <button class="text-button" id="retry-player" hidden>Try connecting again</button>
+        <button class="text-button learning-entry" id="profile-learning">Learning progress</button>
+    </dialog>
+
+    <dialog id="learning-dialog" aria-labelledby="learning-title">
+        <button class="close-help" data-close-dialog="learning-dialog" aria-label="Close learning progress">×</button>
+        <span class="eyebrow">ONE LITTLE STEP AT A TIME</span>
+        <h2 id="learning-title">Learning progress</h2>
+        <p id="learning-recommendation"></p>
+        <div class="learning-metrics">
+            <div><strong id="learning-question-count">0</strong><span>Questions tried</span></div>
+            <div><strong id="learning-first-correct">—</strong><span>Right first time</span></div>
+            <div><strong id="learning-retries">0</strong><span>Right after a retry</span></div>
+            <div><strong id="learning-revealed">0</strong><span>Answers shown</span></div>
+        </div>
+        <h3>Skills and pace</h3>
+        <p class="learning-note">Dots and numbers are tracked separately. Accuracy is from the last 20 questions for each skill; pace uses first-time correct answers. Listening, celebrations and breaks don’t count as thinking time.</p>
+        <div class="learning-table-wrap"><table class="learning-table">
+            <thead><tr><th scope="col">Skill</th><th scope="col">Show as</th><th scope="col">Tried</th><th scope="col">Accuracy</th><th scope="col">Pace</th><th scope="col">Progress</th></tr></thead>
+            <tbody id="learning-skills"></tbody>
+        </table></div>
+        <section id="learning-feature-section" hidden>
+            <h3>Number patterns</h3>
+            <div class="learning-table-wrap"><table class="learning-table">
+                <thead><tr><th scope="col">Pattern</th><th scope="col">Show as</th><th scope="col">Tried</th><th scope="col">Right first time</th></tr></thead>
+                <tbody id="learning-features"></tbody>
+            </table></div>
+        </section>
+        <p class="learning-note">Adaptive practice mixes gentle review, extra practice where needed and a few challenges. There’s no countdown. Taking your time is always OK.</p>
+        <p id="learning-status" role="status"></p>
+        <button class="text-button" id="learning-retry" hidden>Retry saving progress</button>
     </dialog>
 
     <dialog id="admin-dialog" aria-labelledby="admin-title">
@@ -295,6 +327,7 @@
             <li>Count the dots, or switch to numbers.</li>
             <li>Type your answer or use the number buttons. Correct answers are checked automatically. Press Enter to
                 check an unfinished answer.</li>
+            <li>The sparkle difficulty adapts each new question to your answers and your own pace, within 50. Star options keep a fixed range. Open Learning progress from the player menu to see skills, number patterns and practice suggestions.</li>
             <li>In Dots mode, a correct answer flips the dot cards into a number sentence. Listen to it once, then take 2 seconds to look before the next dot question appears.</li>
             <li>A right answer earns a happy little win! If it’s not quite right, listen to the question again and give it another try. After 3 wrong attempts on the same question, see the correct answer for 3 seconds before the next question appears.</li>
             <li>Milo starts 5 steps from the gift and 2 steps from the creature. Each adventure picks a new world and activity: climb stairs, scale walls, swim, ski, fly, and more. A right answer moves him one step toward a random gift; a wrong answer moves him one step toward a hungry creature.</li>
