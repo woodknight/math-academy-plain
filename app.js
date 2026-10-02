@@ -430,16 +430,17 @@ function playSound(effect) {
 }
 
 function renderOperand(element, value, presentation = display) {
+    const showDots = presentation === 'dots' && value > 0 && value <= 10;
     element.replaceChildren();
-    element.setAttribute('aria-label', `${value}${presentation === 'dots' ? ' dots' : ''}`);
-    if (presentation === 'numbers' || value === 0) {
+    element.setAttribute('aria-label', `${value}${showDots ? ' dots' : ''}`);
+    if (!showDots) {
         element.textContent = value;
         return;
     }
     const grid = document.createElement('span');
     grid.className = 'dot-grid';
-    grid.dataset.density = value > 20 ? 'high' : value > 5 ? 'medium' : 'low';
-    grid.style.setProperty('--columns', value > 20 ? '7' : value > 5 ? '5' : value > 1 ? '2' : '1');
+    grid.dataset.density = value > 5 ? 'medium' : 'low';
+    grid.style.setProperty('--columns', value > 5 ? '5' : value > 1 ? '2' : '1');
     grid.setAttribute('aria-hidden', 'true');
     for (let i = 0; i < value; i++) {
         const dot = document.createElement('span');
