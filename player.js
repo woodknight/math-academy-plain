@@ -19,11 +19,12 @@ export function treasureReceiptId(source = globalThis.crypto) {
 }
 
 export class PlayerUI {
-    constructor({ sprite, onOpen, onClose, onPlayerChange = () => {} }) {
+    constructor({ sprite, onOpen, onClose, onPlayerChange = () => {}, getPreferences = () => undefined }) {
         this.sprite = sprite;
         this.onOpen = onOpen;
         this.onClose = onClose;
         this.onPlayerChange = onPlayerChange;
+        this.getPreferences = getPreferences;
         this.reportedPlayerId = null;
         this.player = null;
         this.guestTreasures = {};
@@ -245,6 +246,7 @@ export class PlayerUI {
         try {
             this.player = await this.request(`/${this.authMode}`, {
                 name: $('#player-name').value, username: $('#player-username').value, password: $('#player-password').value,
+                ...(this.authMode === 'register' ? { preferences: this.getPreferences() } : {}),
             });
             this.connected = true;
             this.saveError = '';
@@ -355,7 +357,7 @@ export class PlayerUI {
         $('#player-details').hidden = !this.player;
         $('#admin-open-settings').hidden = this.player?.role !== 'admin';
         $('#player-title').textContent = this.editing ? 'Edit your profile' : this.player ? `Hello, ${this.player.name}!` : 'Welcome, little explorer.';
-        $('#player-summary').textContent = this.player ? `You’re logged in as ${this.player.username}. Your treasures are saved with your profile.` : '';
+        $('#player-summary').textContent = this.player ? `You’re logged in as ${this.player.username}. Your treasures and game settings are saved with your profile.` : '';
         $('#profile-avatar').replaceChildren(...(this.player ? [this.avatarNode()] : []));
         $('#profile-avatar').hidden = this.editing;
         $('#player-summary').hidden = this.editing;

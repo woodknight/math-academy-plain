@@ -8,6 +8,7 @@ import { DEFAULT_SERVER_SETTINGS, validateServerSettings } from './server-config
 import { normalizeAvatarPhoto } from './avatar-service.js';
 import { TIER_IDS, treasureKey } from './treasures.js';
 import { createLearningState, applyAttempt, validateAttempt } from './learning.js';
+import { normalizeGameSettings, validateGameSettings } from './game-settings.js';
 
 const scrypt = promisify(deriveKey);
 export const SESSION_SECONDS = 30 * 24 * 60 * 60;
@@ -80,7 +81,8 @@ export class PlayerStore {
 
     profile(player) {
         return { id: player.id, username: player.username, name: player.name, avatar: player.avatar ?? DEFAULT_AVATAR,
-            avatarPhoto: player.avatarPhoto ?? '', birthday: player.birthday ?? '', role: player.role === 'admin' ? 'admin' : 'player', treasures: { ...player.treasures } };
+            avatarPhoto: player.avatarPhoto ?? '', birthday: player.birthday ?? '', role: player.role === 'admin' ? 'admin' : 'player',
+            preferences: normalizeGameSettings(player.preferences), treasures: { ...player.treasures } };
     }
 
     authenticate(token) {
@@ -169,13 +171,14 @@ export class PlayerStore {
 
     async register(input, oldToken) {
         const { username, password } = this.credentials(input);
+        const preferences = normalizeGameSettings(input.preferences === undefined ? undefined : validateGameSettings(input.preferences));
         const details = profileDetails({ ...input, avatarPhoto: await normalizeAvatarPhoto(input.avatarPhoto ?? '') });
         const salt = randomBytes(16).toString('hex');
         const passwordHash = (await scrypt(password, salt, 64)).toString('hex');
         return this.mutate(state => {
             if (state.serverSettings?.registrationEnabled === false) fail(403, 'New profiles are temporarily disabled. You can still log in or play as a guest.');
             if (state.players.some(player => player.username === username)) fail(409, 'That username is taken. Try another one.');
-            const player = { id: randomUUID(), ...details, role: 'player', salt, passwordHash, treasures: {}, claims: {}, createdAt: new Date().toISOString() };
+            const player = { id: randomUUID(), ...details, preferences, role: 'player', salt, passwordHash, treasures: {}, claims: {}, createdAt: new Date().toISOString() };
             state.players.push(player);
             return { player: this.profile(player), token: this.newSession(state, player.id, oldToken) };
         });
@@ -211,6 +214,17 @@ export class PlayerStore {
             if (state.players.some(item => item.id !== player.id && item.username === details.username)) fail(409, 'That username is taken. Try another one.');
             Object.assign(player, details);
             return this.profile(player);
+        });
+    }
+
+    updatePreferences(token, input) {
+        return this.mutate(state => {
+            const session = state.sessions.find(item => item.hash === digest(token || '') && item.expiresAt > Date.now());
+            const player = session && state.players.find(item => item.id === session.playerId);
+            if (!player) fail(401, 'Log in to save game settings.');
+            if (input.playerId !== player.id) throw Object.assign(new Error('Your player changed. Log in to the original player to save settings.'), { status: 409, code: 'PLAYER_CHANGED' });
+            player.preferences = { ...normalizeGameSettings(player.preferences), ...validateGameSettings(input.preferences) };
+            return { playerId: player.id, preferences: { ...player.preferences } };
         });
     }
 

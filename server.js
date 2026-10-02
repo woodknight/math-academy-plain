@@ -12,6 +12,8 @@ const files = new Map([
     ['/styles.css', ['styles.css', 'text/css; charset=utf-8']],
     ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
     ['/player.js', ['player.js', 'text/javascript; charset=utf-8']],
+    ['/game-settings.js', ['game-settings.js', 'text/javascript; charset=utf-8']],
+    ['/settings-client.js', ['settings-client.js', 'text/javascript; charset=utf-8']],
     ['/profiles.js', ['profiles.js', 'text/javascript; charset=utf-8']],
     ['/admin.js', ['admin.js', 'text/javascript; charset=utf-8']],
     ['/server-config.js', ['server-config.js', 'text/javascript; charset=utf-8']],
@@ -117,7 +119,7 @@ export function createGameServer({ players, speech, secureCookies = false }) {
                     json(response, 200, players.learning(token));
                     return;
                 }
-                const routes = ['/api/player/register', '/api/player/login', '/api/player/logout', '/api/player/treasures', '/api/player/profile', '/api/player/learning'];
+                const routes = ['/api/player/register', '/api/player/login', '/api/player/logout', '/api/player/treasures', '/api/player/profile', '/api/player/learning', '/api/player/preferences'];
                 if (!routes.includes(pathname)) { json(response, 404, { error: 'Not found.' }); return; }
                 if (request.method !== 'POST') { json(response, 405, { error: 'Method not allowed.' }, { Allow: 'POST' }); return; }
                 checkOrigin(request);
@@ -143,6 +145,8 @@ export function createGameServer({ players, speech, secureCookies = false }) {
                     json(response, 200, { player: await players.updateProfile(token, input) });
                 } else if (pathname.endsWith('/learning')) {
                     json(response, 200, await players.saveLearning(token, input));
+                } else if (pathname.endsWith('/preferences')) {
+                    json(response, 200, await players.updatePreferences(token, input));
                 } else {
                     json(response, 200, { player: await players.collect(token, input) });
                 }

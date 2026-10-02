@@ -2027,6 +2027,8 @@ main { max-width: 1680px; padding: 0 24px 24px; }
 .learning-table th, .learning-table td { padding: 12px 9px; border-bottom: 1px solid #e6ebdf; }
 .learning-table td:first-child { font-weight: 600; }
 #learning-status { font-size: 12px; color: #55784a; }
+#game-settings-status { font-size: 12px; color: #55784a; }
+#game-settings-status[data-state="error"] { color: #b15340; }
 @media (max-height: 850px) {
     .equation { margin-top: 78px; }
     .operand, .answer-wrap { height: 138px; }

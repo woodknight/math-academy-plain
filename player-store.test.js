@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { PlayerStore } from './player-store.js';
 import { createGameServer } from './server.js';
+import { DEFAULT_GAME_SETTINGS } from './game-settings.js';
 
 const alice = { username: 'Alice', name: 'Alice the explorer', password: 'test-password-alice' };
 const bob = { username: 'bob', name: 'Bob', password: 'test-password-bob' };
@@ -17,6 +18,56 @@ async function setup(t) {
     return { store, directory };
 }
 const claim = (player, rewardId = 'gem', claimId = randomUUID()) => ({ playerId: player.id, rewardId, claimId });
+
+test('game settings persist across restart and a login from a second device', async t => {
+    const { store, directory } = await setup(t);
+    const preferences = { mode: 'mixed', display: 'numbers', soundEnabled: false, difficulty: 'hard' };
+    const first = await store.register({ ...alice, preferences });
+    assert.deepEqual(first.player.preferences, preferences);
+    await store.updatePreferences(first.token, { playerId: first.player.id, preferences: { mode: 'subtraction', difficulty: 'medium' } });
+    const restarted = new PlayerStore(directory); await restarted.init();
+    const login = await restarted.login(alice);
+    assert.deepEqual(login.player.preferences, { ...preferences, mode: 'subtraction', difficulty: 'medium' });
+    assert.deepEqual(restarted.profile(restarted.authenticate(first.token)).preferences, login.player.preferences);
+});
+
+test('legacy players get defaults and concurrent settings patches preserve other player data', async t => {
+    const { store } = await setup(t);
+    const first = await store.register(alice);
+    delete store.state.players[0].preferences;
+    assert.deepEqual(store.profile(store.authenticate(first.token)).preferences, DEFAULT_GAME_SETTINGS);
+    await Promise.all([
+        store.updatePreferences(first.token, { playerId: first.player.id, preferences: { soundEnabled: false } }),
+        store.updatePreferences(first.token, { playerId: first.player.id, preferences: { difficulty: 'hard' } }),
+        store.updateProfile(first.token, { playerId: first.player.id, name: 'Alice explorer' }),
+        store.collect(first.token, claim(first.player)),
+    ]);
+    const profile = store.profile(store.authenticate(first.token));
+    assert.deepEqual(profile.preferences, { ...DEFAULT_GAME_SETTINGS, soundEnabled: false, difficulty: 'hard' });
+    assert.equal(profile.name, 'Alice explorer');
+    assert.deepEqual(profile.treasures, { gem: 1 });
+});
+
+test('game settings reject invalid values, wrong owners and expired sessions; failed writes can retry', async t => {
+    const { store } = await setup(t);
+    const first = await store.register(alice), second = await store.register(bob);
+    const input = { playerId: first.player.id, preferences: { mode: 'mixed' } };
+    await assert.rejects(store.updatePreferences(second.token, input), { status: 409, code: 'PLAYER_CHANGED' });
+    await assert.rejects(store.updatePreferences('invalid', input), { status: 401 });
+    for (const preferences of [null, [], {}, { mode: 'divide' }, { display: 'number' }, { difficulty: 'impossible' }, { soundEnabled: 'false' }, { role: 'admin' }]) {
+        await assert.rejects(store.updatePreferences(first.token, { ...input, preferences }), { status: 400 });
+    }
+    const path = store.path;
+    store.path = join(store.directory, 'missing', 'players.json');
+    await assert.rejects(store.updatePreferences(first.token, input));
+    assert.deepEqual(store.profile(store.authenticate(first.token)).preferences, DEFAULT_GAME_SETTINGS);
+    store.path = path;
+    await store.updatePreferences(first.token, input);
+    assert.equal(store.profile(store.authenticate(first.token)).preferences.mode, 'mixed');
+    assert.deepEqual(store.profile(store.authenticate(second.token)).preferences, DEFAULT_GAME_SETTINGS);
+    await store.logout(first.token);
+    await assert.rejects(store.updatePreferences(first.token, input), { status: 401 });
+});
 
 test('profiles, hashed credentials, sessions, and stacked collections survive a store restart', async t => {
     const { store, directory } = await setup(t);
@@ -115,6 +166,24 @@ async function serve(t, players) {
         return { status: response.status, data: await response.json(), cookie: response.headers.get('set-cookie') };
     };
 }
+
+test('HTTP game settings restore on reopening and a second login, and enforce origin and ownership', async t => {
+    const { store } = await setup(t), request = await serve(t, store);
+    const registered = await request('/register', alice);
+    const cookie = registered.cookie.split(';')[0];
+    const input = { playerId: registered.data.player.id, preferences: { mode: 'mixed', difficulty: 'hard', display: 'numbers', soundEnabled: false } };
+    assert.equal((await request('/preferences', input)).status, 401);
+    assert.equal((await request('/preferences')).status, 405);
+    assert.equal((await request('/preferences', input, cookie, { Origin: 'https://other.example' })).status, 403);
+    assert.equal((await request('/preferences', { ...input, playerId: 'bob' }, cookie)).status, 409);
+    assert.equal((await request('/preferences', { ...input, preferences: { soundEnabled: 'false' } }, cookie)).status, 400);
+    assert.deepEqual((await request('/preferences', input, cookie)).data, { playerId: input.playerId, preferences: input.preferences });
+    assert.deepEqual((await request('', undefined, cookie)).data.player.preferences, input.preferences);
+    assert.deepEqual((await request('/login', alice)).data.player.preferences, input.preferences);
+    const second = await request('/register', bob);
+    assert.deepEqual(second.data.player.preferences, DEFAULT_GAME_SETTINGS);
+    assert.equal((await request('/preferences', input, second.cookie.split(';')[0])).status, 409);
+});
 
 test('HTTP registration/login, cookie restoration after server restart, collection and logout work end to end', async t => {
     const { store, directory } = await setup(t);

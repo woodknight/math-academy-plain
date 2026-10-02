@@ -8,6 +8,7 @@ import { LearningClient } from './learning-client.js';
 import { LearningUI } from './learning-ui.js';
 import { TREASURE_TIERS, upgradeTreasure } from './treasures.js';
 import { RoundMusicPlayer } from './round-music.js';
+import { SettingsClient } from './settings-client.js';
 
 const $ = (selector) => document.querySelector(selector);
 const answerInput = $('#answer');
@@ -33,6 +34,16 @@ let learnerRevision = 0;
 let learnerReady = Promise.resolve();
 let learningUI;
 let speechRevision = 0;
+const settingsClient = new SettingsClient({
+    onChange: renderSettingsStatus,
+    onAuthError: error => {
+        playerUI.player = null;
+        playerUI.revision++;
+        playerUI.setAuthMode('login');
+        playerUI.error(error.message);
+        playerUI.render();
+    },
+});
 const learningClock = new LearningClock();
 const scheduler = new AdaptiveScheduler();
 const learningClient = new LearningClient({
@@ -121,6 +132,7 @@ const playerUI = new PlayerUI({
         if (started && !locked && !document.querySelector('dialog[open]')) speak(questionText(problem));
     },
     onPlayerChange: changeLearner,
+    getPreferences: () => settingsClient.settings,
 });
 learningUI = new LearningUI({ client: learningClient, onOpen: openDialog, onClose: () => {
     updateDialogClock();
@@ -140,10 +152,10 @@ function changeLearner(player) {
     setLocked(true);
     stopSpeech();
     stopSounds();
+    settingsClient.setPlayer(player);
+    applyGameSettings();
     learnerReady = learningClient.setPlayer(player?.id ?? null).finally(() => {
         if (revision !== learnerRevision) return;
-        difficulty = 'adaptive';
-        $('#difficulty').value = difficulty;
         scheduler.reset();
         correctCount = 0;
         questionNumber = 1;
@@ -672,10 +684,47 @@ function updateButtons(group, attribute, selected) {
     });
 }
 
+function renderSoundButton() {
+    $('#sound-toggle').setAttribute('aria-pressed', String(soundEnabled));
+    $('#sound-toggle').setAttribute('aria-label', soundEnabled ? 'Sound on' : 'Sound off');
+    $('#sound-toggle span').textContent = soundEnabled ? 'Sound on' : 'Sound off';
+    $('#sound-toggle use').setAttribute('href', soundEnabled ? '#i-sound' : '#i-mute');
+}
+
+function applyGameSettings() {
+    ({ mode, difficulty, display, soundEnabled } = settingsClient.settings);
+    updateButtons('#mode-options', 'mode', mode);
+    updateButtons('#display-options', 'display', display);
+    $('#difficulty').value = difficulty;
+    renderSoundButton();
+    if (!soundEnabled) {
+        stopSpeech();
+        stopSounds();
+        $('#voice-notice').hidden = true;
+        audioContext?.suspend().catch(() => {});
+    }
+}
+
+function renderSettingsStatus() {
+    const pending = settingsClient.hasPending();
+    $('#game-settings-status').textContent = settingsClient.error || (pending
+        ? 'Saving game settings…'
+        : settingsClient.playerId ? 'Game settings saved. Log in to this profile on another device to restore them.'
+            : 'Guest game settings stay in this browser. Create a profile to keep them across devices.');
+    if (settingsClient.storageError && (!settingsClient.playerId || pending)) {
+        $('#game-settings-status').textContent += ` ${settingsClient.storageError}`;
+    }
+    $('#retry-game-settings').hidden = !pending || !settingsClient.error;
+    $('#game-settings-status').dataset.state = settingsClient.error || (settingsClient.storageError && (!settingsClient.playerId || pending)) ? 'error' : 'saved';
+}
+
+$('#retry-game-settings').addEventListener('click', () => settingsClient.sync());
+
 $('#mode-options').addEventListener('click', (event) => {
     const value = event.target.closest('[data-mode]')?.dataset.mode;
     if (locked || !value || value === mode) return;
     mode = value;
+    settingsClient.update({ mode });
     updateButtons('#mode-options', 'mode', mode);
     unlockAudio();
     nextProblem();
@@ -683,6 +732,7 @@ $('#mode-options').addEventListener('click', (event) => {
 $('#difficulty').addEventListener('change', (event) => {
     if (locked) return;
     difficulty = event.target.value;
+    settingsClient.update({ difficulty });
     resetTrail();
     unlockAudio();
     nextProblem();
@@ -703,6 +753,7 @@ $('#display-options').addEventListener('click', (event) => {
     const value = event.target.closest('[data-display]')?.dataset.display;
     if (locked || !value || value === display) return;
     display = value;
+    settingsClient.update({ display });
     updateButtons('#display-options', 'display', display);
     if (difficulty === 'adaptive' || wrongAttempts) { nextProblem(); return; }
     questionSession.display = display;
@@ -712,10 +763,8 @@ $('#display-options').addEventListener('click', (event) => {
 });
 $('#sound-toggle').addEventListener('click', () => {
     soundEnabled = !soundEnabled;
-    $('#sound-toggle').setAttribute('aria-pressed', String(soundEnabled));
-    $('#sound-toggle').setAttribute('aria-label', soundEnabled ? 'Sound on' : 'Sound off');
-    $('#sound-toggle span').textContent = soundEnabled ? 'Sound on' : 'Sound off';
-    $('#sound-toggle use').setAttribute('href', soundEnabled ? '#i-sound' : '#i-mute');
+    settingsClient.update({ soundEnabled });
+    renderSoundButton();
     if (soundEnabled) {
         unlockAudio();
         if (started) speak(revealingAnswer || showingNumericSolution ? solutionText(problem) : questionText(problem, locked && card.classList.contains('correct')));
@@ -747,14 +796,19 @@ document.addEventListener('visibilitychange', () => {
     if (document.hidden) learningClock.pause('background'); else learningClock.resume('background');
 });
 window.addEventListener('online', () => learningClient.setPlayer(learningClient.playerId));
+window.addEventListener('online', () => settingsClient.sync());
 window.addEventListener('pagehide', () => { learningClock.pause('background'); stopSpeech(); stopSounds(); });
 window.addEventListener('pageshow', () => { if (!document.hidden) learningClock.resume('background'); });
 if (document.hidden) learningClock.pause('background');
+applyGameSettings();
+renderSettingsStatus();
 renderProblem();
 resetTrail();
 setLocked(true);
+for (const id of ['sound-toggle', 'start-button', 'listen-button']) $(`#${id}`).disabled = true;
 await playerUI.init();
 if (learningClient.playerId === undefined) changeLearner(playerUI.player);
 await learnerReady;
 setLocked(false);
+for (const id of ['sound-toggle', 'start-button', 'listen-button']) $(`#${id}`).disabled = false;
 prepareSpeech();
