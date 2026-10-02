@@ -3,7 +3,7 @@ export const LEARNING_RULES = Object.freeze({
     limit: 50, initialLimit: 5, step: .35, smallerWeight: .35, exchangeWeight: .75,
     zeroDiscount: .75, doublesDiscount: .25, baselineWindow: 20, baselineSamples: 5,
     baselineDistance: .5, fluentRatio: 1.25, unlockWindow: 10, unlockCorrect: 8,
-    recentLimit: 200, repeatWindow: 5, selectionTolerance: .015, targets: { normal: .85, weak: .9, challenge: .7 },
+    recentLimit: 200, repeatWindow: 5, zeroPracticeWindow: 5, selectionTolerance: .015, targets: { normal: .85, weak: .9, challenge: .7 },
 });
 export const SKILLS = {
     addition: 'Addition', carry: 'Addition with carrying',
@@ -26,10 +26,12 @@ export function problemFeatures(problem) {
     const exchange = operation === 'addition' ? a % 10 + b % 10 >= 10 : a % 10 < b % 10;
     const maximum = Math.max(a, b, answer), zero = a === 0 || b === 0 || answer === 0;
     const doubles = operation === 'addition' && a === b;
+    // Adding or subtracting zero stays a basic identity even with a large number.
+    const difficultyMaximum = a === 0 || b === 0 ? Math.min(maximum, LEARNING_RULES.initialLimit) : maximum;
     return { answer, maximum, zero, doubles, exchange,
         skill: exchange ? operation === 'addition' ? 'carry' : 'borrow' : operation,
         range: maximum <= 5 ? 'within5' : maximum <= 10 ? 'within10' : maximum <= 20 ? 'within20' : 'within50',
-        difficulty: Math.log2(1 + maximum) + LEARNING_RULES.smallerWeight * Math.log2(1 + Math.min(a, b))
+        difficulty: Math.log2(1 + difficultyMaximum) + LEARNING_RULES.smallerWeight * Math.log2(1 + Math.min(a, b))
             + (exchange ? LEARNING_RULES.exchangeWeight : 0) - (zero ? LEARNING_RULES.zeroDiscount : 0)
             - (doubles ? LEARNING_RULES.doublesDiscount : 0) };
 }
@@ -198,7 +200,7 @@ function shuffle(values, random) {
 }
 export class AdaptiveScheduler {
     constructor(random = Math.random) { this.random = random; this.reset(); }
-    reset() { this.slots = []; this.operations = []; this.history = []; this.mode = null; }
+    reset() { this.slots = []; this.operations = []; this.history = []; this.zeroHistory = []; this.mode = null; }
     next(state, mode, display) {
         if (this.mode !== mode) { this.slots = []; this.operations = []; this.mode = mode; }
         if (!this.slots.length) {
@@ -214,7 +216,11 @@ export class AdaptiveScheduler {
         const weaknesses = weakTargets(state, operation, display).filter(target => available.some(p => matchesTarget(p, target)));
         if (kind === 'weak' && !weaknesses.length) kind = 'normal';
         const target = LEARNING_RULES.targets[kind];
-        const candidates = available.filter(p => kind !== 'weak' || matchesTarget(p, weaknesses[0]));
+        const targeted = available.filter(p => kind !== 'weak' || matchesTarget(p, weaknesses[0]));
+        // Keep zero facts occasional unless this slot explicitly addresses that weakness.
+        const practisingZero = kind === 'weak' && weaknesses[0].feature === 'zero';
+        const varied = this.zeroHistory.includes(true) && !practisingZero ? targeted.filter(p => !p.zero) : targeted;
+        const candidates = varied.length ? varied : targeted;
         const distances = candidates.map(p => Math.abs(predictedCorrect(state, p, display) - target));
         const best = Math.min(...distances);
         const nearby = candidates.filter((_, index) => distances[index] <= best + LEARNING_RULES.selectionTolerance);
@@ -222,6 +228,8 @@ export class AdaptiveScheduler {
         if (!selected) throw new Error('No adaptive problem available.');
         this.history.push(problemKey(selected));
         this.history = this.history.slice(-LEARNING_RULES.repeatWindow);
+        this.zeroHistory.push(selected.zero);
+        this.zeroHistory = this.zeroHistory.slice(-(LEARNING_RULES.zeroPracticeWindow - 1));
         return { problem: { a: selected.a, b: selected.b, operation, answer: selected.answer }, kind, target, skill: selected.skill };
     }
 }

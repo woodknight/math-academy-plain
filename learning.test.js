@@ -18,6 +18,21 @@ test('features classify decimal carrying, borrowing, zero and matching addends',
     assert.equal(problemFeatures({ a: 3, b: 3, operation: 'subtraction' }).zero, true);
     assert.equal(problemKey({ a: 3, b: 2, operation: 'addition' }), problemKey({ a: 2, b: 3, operation: 'addition' }));
 });
+
+test('large numbers do not make adding or subtracting zero an advanced problem', () => {
+    for (const operation of ['addition', 'subtraction']) {
+        const basic = problemFeatures({ a: 5, b: 0, operation });
+        for (const a of [10, 20, 30, 50]) {
+            const features = problemFeatures({ a, b: 0, operation });
+            assert.equal(features.difficulty, basic.difficulty);
+            assert.equal(features.maximum, a);
+            assert.equal(features.answer, a);
+            if (operation === 'addition') assert.equal(problemFeatures({ a: 0, b: a, operation }).difficulty, basic.difficulty);
+        }
+    }
+    assert.ok(problemFeatures({ a: 30, b: 1, operation: 'addition' }).difficulty
+        > problemFeatures({ a: 30, b: 0, operation: 'addition' }).difficulty);
+});
 test('each question updates mastery once; a retry records recovery without inflating accuracy', () => {
     const state = createLearningState(), first = attempt({ answer: 4 });
     applyAttempt(state, first);
@@ -71,6 +86,40 @@ test('adaptive cold start is within five, excludes five recent equivalent proble
         recent.push(problemKey(problem)); if (recent.length > 5) recent.shift();
     }
     for (let i = 0; i < 30; i += 10) assert.equal(operations.slice(i, i + 10).filter(o => o === 'addition').length, 5);
+});
+
+test('extended adaptive play keeps zero facts occasional while ability grows', () => {
+    for (const mode of ['addition', 'subtraction', 'mixed']) for (const display of ['dots', 'numbers']) {
+        const state = createLearningState(), scheduler = new AdaptiveScheduler(seededRandom()), recent = [];
+        const initial = state.skills[`addition:${display}`].ability;
+        let maximum = 0;
+        for (let i = 0; i < 200; i++) {
+            const { problem } = scheduler.next(state, mode, display), features = problemFeatures(problem);
+            maximum = Math.max(maximum, features.maximum);
+            recent.push(features.zero);
+            if (recent.length > 5) recent.shift();
+            assert.ok(recent.filter(Boolean).length <= 1, `${mode}/${display}: zero facts dominate at question ${i + 1}`);
+            applyAttempt(state, attempt({ problem, display, answer: problem.answer }));
+        }
+        assert.ok(maximum > 5);
+        if (mode !== 'subtraction') assert.ok(state.skills[`addition:${display}`].ability > initial);
+    }
+});
+
+test('very low ability still offers varied basic problems without exhausting the pool', () => {
+    for (const mode of ['addition', 'subtraction', 'mixed']) {
+        const state = createLearningState(), scheduler = new AdaptiveScheduler(seededRandom()), recent = [];
+        state.skills['addition:dots'].ability = -20;
+        state.skills['subtraction:dots'].ability = -20;
+        for (let i = 0; i < 30; i++) {
+            const { problem } = scheduler.next(state, mode, 'dots');
+            assert.ok(problemFeatures(problem).maximum <= 5);
+            assert.ok(!recent.some(p => problemKey(p) === problemKey(problem)));
+            recent.push(problem);
+            if (recent.length > 5) recent.shift();
+            assert.ok(recent.filter(p => problemFeatures(p).zero).length <= 1);
+        }
+    }
 });
 test('weakness schedules contain six ordinary, three targeted and one challenge question', () => {
     const state = createLearningState();
